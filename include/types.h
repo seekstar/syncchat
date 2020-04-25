@@ -2,44 +2,71 @@
 #define __TYPES_H__
 
 #include <cstdint>
+#include <chrono>
+
 #include <openssl/sha.h>
 
 enum class C2S : uint16_t {
-    MSG,
-    MSG_GROUP,
-    P2PCONN,
     SIGNUP,
+    LOGIN,
     LOGOUT,
-    ONLINE_USER,
+    MSG,
     MSG_REQ,
-    MSG_GROUP_REQ
+    ONLINE_FRIENDS,
+    ONLINE_GROUP_MEMBER,
+    MSG_GROUP,
+    MSG_GROUP_REQ,
+    P2PCONN
 };
 enum class S2C : uint16_t {
-    MSG = static_cast<uint16_t>(C2S::MSG),
-    MSG_GROUP = static_cast<uint16_t>(C2S::MSG_GROUP),
-    P2PCONN = static_cast<uint16_t>(C2S::P2PCONN),
+    OK,
     FAIL,
-    SIGNUP_OK,
-    LOGIN_OK,
-    ALREADY_LOGINED,
     SOMEONE_LOGIN,
     SOMEONE_LOGOUT,
-    ONLINE_FRIENDS,
-    LOGOUT_OK,
-    ALREADY_LOGOUTED,
+    MSG,
     MSG_RPLY,
-    MSG_GROUP_RPLY
+    ONLINE_FRIENDS,
+    MSG_GROUP,
+    MSG_GROUP_RPLY,
+    ONLINE_GROUP_MEMBER,
+    P2PCONN
+};
+enum class S2COK : uint16_t {
+    SIGNUP,
+    LOGIN,
+    LOGOUT
+};
+enum class S2CFAIL : uint16_t {
+    ALREADY_LOGINED,
+    ALREADY_LOGOUTED,
+    MSG_TOO_LONG
 };
 
 //chat user id
 typedef uint64_t userid_t;
 //chat group id
 typedef uint64_t groupid_t;
-#define CHATLEN (BODYLEN - 2 * sizeof(chatid_t) - sizeof(uint32_t))
-struct MsgHeader {
-    userid_t from;
+//message id
+typedef uint64_t msgid_t;
+
+const size_t MAX_CONTENT_LEN = 2000;
+struct MsgSendHeader {
     userid_t to;
+    msgid_t reply;
+    size_t len; //length of content
 };
+struct MsgS2CReplyHeader {
+    msgid_t msgid;
+    std::chrono::milliseconds time;
+};
+struct MsgRecvHeader {
+    msgid_t msgid;
+    std::chrono::milliseconds time;
+    userid_t from;
+    msgid_t reply;
+    size_t len; //length of content
+};
+
 struct MsgGroupHeader {
     userid_t from;
     groupid_t to;
