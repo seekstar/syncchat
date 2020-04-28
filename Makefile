@@ -46,6 +46,7 @@ debug: $(OBJS)
 release: $(OBJS)
 	cd server && $(MAKE) release
 
+server: release
 all: release
 
-.PHONY: clean server
+.PHONY: clean debug release server all
