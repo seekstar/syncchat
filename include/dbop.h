@@ -5,12 +5,12 @@
 #include "odbc.h"
 
 template <typename inctype>
-inctype insert_auto_inc(char *stmt) {
+inctype insert_auto_inc(const char *stmt) {
     SQLLEN length;
     SQLRETURN ret;
     inctype inc;
     SQLBindParameter(serverhstmt, 1, SQL_PARAM_OUTPUT, SQL_C_UBIGINT, SQL_BIGINT, 0, 0, &inc, 0, &length);
-	ret = SQLExecDirect(serverhstmt, reinterpret_cast<SQLCHAR*>(stmt), SQL_NTS);
+	ret = SQLExecDirect(serverhstmt, (SQLCHAR*)stmt, SQL_NTS);
     if (ret == SQL_SUCCESS || ret == SQL_SUCCESS_WITH_INFO) {
         return inc;
     } else {
