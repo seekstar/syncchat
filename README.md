@@ -5,17 +5,19 @@ An IM software
 
 #### Software Architecture
 
-
 #### Installation
 
 1. mkdir build
 2. cd build
 3. cmake ..
+
 There may be error like this:
-```
+
+```txt
 CMake Error: The source directory "/home/searchstar/git/syncchat/src" does not appear to contain CMakeLists.txt.
 Specify --help for usage, or press the help button on the CMake GUI.
 ```
+
 Just ignore it.(I don't know the reason of this error though.)
 
 4. make
@@ -23,13 +25,16 @@ Then the server is in directory "build".
 
 #### Instructions
 
-1.  Run server
+1. Configure odbc data source
+This is an artical for the configuration of odbc data source for mariadb.
+<https://blog.csdn.net/qq_41961459/article/details/105142898>
+2. Run server
 You need server.pem and dh2048.pem as certificate.
 You can find the demo certificate in the directory "demo".
-2.  Run client
+3. Run client
 You need ca.pem to verify the certificate that the server provides.
 You can find the demo ca.pem in the directory "demo".
-3.  xxxx
+4. xxxx
 
 #### Contribution
 
