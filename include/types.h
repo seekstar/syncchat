@@ -10,6 +10,8 @@ enum class C2S : uint16_t {
     SIGNUP,
     LOGIN,
     LOGOUT,
+    ADD_FRIEND_REQ,
+    ADD_FRIEND_REPLY,
     MSG,
     MSG_REQ,
     ONLINE_FRIENDS,
@@ -23,6 +25,8 @@ enum class S2C : uint16_t {
     FAIL,
     SOMEONE_LOGIN,
     SOMEONE_LOGOUT,
+    ADD_FRIEND_REQ,
+    ADD_FRIEND_REPLY,
     MSG,
     MSG_RPLY,
     ONLINE_FRIENDS,
@@ -37,6 +41,7 @@ enum class S2COK : uint16_t {
     LOGOUT
 };
 enum class S2CFAIL : uint16_t {
+    LOGIN_FIRST,
     ALREADY_LOGINED,
     ALREADY_LOGOUTED,
     MSG_TOO_LONG

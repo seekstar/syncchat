@@ -82,6 +82,7 @@
    </attribute>
    <addaction name="actionChat"/>
    <addaction name="actionContacts"/>
+   <addaction name="actionAddFriend"/>
    <addaction name="actionMoments"/>
   </widget>
   <action name="actionChat">
@@ -97,6 +98,11 @@
   <action name="actionMoments">
    <property name="text">
     <string>朋友圈</string>
+   </property>
+  </action>
+  <action name="actionAddFriend">
+   <property name="text">
+    <string>加好友</string>
    </property>
   </action>
  </widget>

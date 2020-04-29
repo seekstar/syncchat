@@ -4,7 +4,7 @@ project(server)
 set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -g -Wall -Wextra -fexceptions")
 set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall -Wextra -fexceptions")
 
-aux_source_directory(${PROJECT_SOURCE_DIR}/src SHARED_SRCS)
+aux_source_directory(src SHARED_SRCS)
 add_library(common ${SHARED_SRCS})
 target_include_directories(common
     PUBLIC
@@ -13,7 +13,11 @@ target_include_directories(common
 # set the C++ standard to the appropriate standard for using auto
 target_compile_features(common PRIVATE cxx_auto_type)
 
-aux_source_directory(${PROJECT_SOURCE_DIR}/server/src SERVER_SRCS)
+aux_source_directory(server/src SERVER_SRCS)
+# set(SERVER_SRCS
+#     server/src/main.cpp
+#     server/src/session.cpp
+# )
 add_executable(server ${SERVER_SRCS})
 target_include_directories(server
     PRIVATE
