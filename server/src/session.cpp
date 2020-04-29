@@ -1,9 +1,13 @@
 #include "session.h"
 
 #include <unordered_map>
+#include <random>
 
 #include "escape.h"
 #include "odbc.h"
+#include "cppbase.h"
+
+#include "srvtypes.h"
 
 std::unordered_map<userid_t, session*> user_session;
 
@@ -21,30 +25,75 @@ session::socket() {
 
 void session::start() {
     socket_.async_handshake(boost::asio::ssl::stream_base::server,
-        boost::bind(&session::handshake_done, this,
+        boost::bind(&session::listen_signup_or_login, this,
         boost::asio::placeholders::error));
 }
-void session::handshake_done(const boost::system::error_code& error) {
+void session::listen_signup_or_login(const boost::system::error_code& error) {
     if (error) {
-        delete this;
+        reset();
+        return;
+    }
+    boost::asio::async_read(socket_,
+        boost::asio::buffer(buf_, sizeof(C2S)),
+        boost::bind(&session::handle_signup_or_login, this, boost::asio::placeholders::error));
+}
+void session::handle_signup_or_login(const boost::system::error_code& error) {
+    if (error) {
+        reset();
+        return;
+    }
+    switch (*(C2S*)buf_) {
+    case C2S::SIGNUP:
+        boost::asio::async_read(socket_,
+            boost::asio::buffer(buf_, sizeof(struct signupinfo)),
+            boost::bind(&session::handle_signup, this, boost::asio::placeholders::error));
+        break;
+    case C2S::LOGIN:
+        boost::asio::async_read(socket_,
+            boost::asio::buffer(buf_, sizeof(struct logininfo)),
+            boost::bind(&session::handle_login, this, boost::asio::placeholders::error));
+        break;
+    default:
+        dbgcout << "handle_signup_or_login: Unknown type " << *(C2SBaseType*)buf_ << std::endl;
+        break;
+    }
+}
+void session::handle_signup(const boost::system::error_code& error) {
+    if (error) {
+        reset();
+        return;
+    }
+    struct pwinfo pwinfo;
+    //TODO: use random_device and handle the exception it throws
+    //std::random_device rng;
+    
+    pwinfo.salt = gensalt();
+}
+void session::handle_login(const boost::system::error_code& error) {
+    if (error) {
+        reset();
         return;
     }
     user_session[userid] = this;
-    listen_request(boost::system::errc::make_error_code(boost::system::errc::success));
+    listen_request();
+}
+
+void session::listen_request() {
+    boost::asio::async_read(socket_,
+        boost::asio::buffer(buf_, sizeof(enum C2S)),
+        boost::bind(&session::handle_request, this, boost::asio::placeholders::error));
 }
 void session::listen_request(const boost::system::error_code& error) {
     if (error) {
         reset();
         return;
     }
-    boost::asio::async_read(socket_,
-        boost::asio::buffer(buf_, sizeof(enum C2S)),
-        boost::bind(&session::handle_request, this, boost::asio::placeholders::error));
+    listen_request();
 }
-void session::send_type(S2C type) {
+/*void session::send_type(S2C type) {
     boost::asio::async_write(socket_,
             boost::asio::buf)
-}
+}*/
 void session::handle_request(const boost::system::error_code& error) {
     if (error) {
         reset();
@@ -58,7 +107,14 @@ void session::handle_request(const boost::system::error_code& error) {
         break;
     case C2S::SIGNUP:
     case C2S::LOGIN:
-        send_type(S2C::FAIL);
+        *(S2C*)buf_ = S2C::FAIL;
+        *(S2CFAIL*)(buf_ + sizeof(S2C)) = S2CFAIL::ALREADY_LOGINED;
+        break;
+    default:
+        //DBG("Unkown request type: %hu\n", *(uint16_t*)buf_);
+        dbgcout << *(C2SBaseType*)buf_;
+        listen_request();
+        break;
     }
 }
 void session::handle_msg(const boost::system::error_code& error) {

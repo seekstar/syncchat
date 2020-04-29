@@ -17,16 +17,20 @@ public:
     ssl_socket::lowest_layer_type& socket();
 
     void start();
-    void handshake_done(const boost::system::error_code& error);
+
+private:
+    void listen_signup_or_login(const boost::system::error_code& error);
+    void handle_signup_or_login(const boost::system::error_code& error);
+    void handle_signup(const boost::system::error_code& error);
+    void handle_login(const boost::system::error_code& error);
+    
+    void listen_request();
     void listen_request(const boost::system::error_code& error);
     void handle_request(const boost::system::error_code& error);
     void handle_msg(const boost::system::error_code& error);
     void handle_msg_content(const boost::system::error_code& error);
     void handle_send_content(const boost::system::error_code& error);
     void reset();
-
-private:
-    void send_type(S2C);
     
     ssl_socket socket_;
     

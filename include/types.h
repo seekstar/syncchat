@@ -6,7 +6,8 @@
 
 #include <openssl/sha.h>
 
-enum class C2S : uint16_t {
+typedef uint16_t C2SBaseType;
+enum class C2S : C2SBaseType {
     SIGNUP,
     LOGIN,
     LOGOUT,
