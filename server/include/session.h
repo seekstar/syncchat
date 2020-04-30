@@ -2,12 +2,9 @@
 #define SESSION_H_
 
 #include <boost/bind.hpp>
-#include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
 
+#include "sslbase.h"
 #include "types.h"
-
-typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_socket;
 
 class session {
 public:
@@ -30,15 +27,15 @@ private:
     void handle_request(const boost::system::error_code& error);
     void handle_msg(const boost::system::error_code& error);
     void handle_msg_content(const boost::system::error_code& error);
-    void handle_send_content(const boost::system::error_code& error);
+    void send_msg_content(const boost::system::error_code& error);
     void reset();
     
     ssl_socket socket_;
     
     userid_t userid;
 
-    //const static size_t bufsize = MAX_CONTENT_LEN;
-    const static size_t bufsize = 4096;
+    const static size_t bufsize = MAX_CONTENT_LEN;
+    //const static size_t bufsize = 4096;
     char buf_[bufsize];
     static_assert(sizeof(enum C2S) <= bufsize &&
         sizeof(MsgC2SHeader) <= bufsize &&

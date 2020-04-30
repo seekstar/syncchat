@@ -194,7 +194,7 @@ void session::handle_msg_content(const boost::system::error_code& error) {
         socket2_ = &it->second->socket_;
         boost::asio::async_write(*socket2_,
             boost::asio::buffer(&msgS2CHeader, sizeof(msgS2CHeader)),
-            boost::bind(&session::handle_send_content, this, boost::asio::placeholders::error));
+            boost::bind(&session::send_msg_content, this, boost::asio::placeholders::error));
     }
     //Write to db
     try {
@@ -205,17 +205,23 @@ void session::handle_msg_content(const boost::system::error_code& error) {
         if (!SQL_SUCCEEDED(retcode)) {
             throw "SQLBindParameter of user id Failed";
         }
-        std::string stmt = "{CALL insert_msg(?, " + 
+        std::string stmt = "{CALL insert_msg(?, " +
         std::to_string(duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count()) + ',' +
-        std::to_string(userid) + ',' + 
+        std::to_string(userid) + ',' +
         std::to_string(msgS2CHeader.reply) + ',' +
         escape(buf_) + ")}";
         //TODO:
+        if (odbc_exec(std::cerr, stmt.c_str())) {
+            throw "odbc_exec error";
+        }
+        boost::asio::async_write(socket_,
+            boost::asio::buffer(&msgS2CHeader, sizeof(msgS2CHeader)),
+            boost::bind(&session::send_msg_content, this, boost::asio::placeholders::error));
     } catch (const char *errmsg) {
         std::cerr << errmsg << std::endl;
     }
 }
-void session::handle_send_content(const boost::system::error_code& error) {
+void session::send_msg_content(const boost::system::error_code& error) {
     if (error) {
         reset();
         return;

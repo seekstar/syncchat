@@ -26,11 +26,20 @@ INCLUDEPATH += ../include
 
 SOURCES += ../src/*\
         main.cpp\
-        mainwindow.cpp
+        mainwindow.cpp \
+    winlogin.cpp \
+    sslclient.cpp \
+    dialogsignup.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += ../include/*\
+    mainwindow.h \
+    winlogin.h \
+    sslclient.h \
+    dialogsignup.h
 
-FORMS    += mainwindow.ui
+FORMS    += mainwindow.ui \
+    winlogin.ui \
+    dialogsignup.ui
 
 win32 {
     DEFINES  -= UNICODE
@@ -39,3 +48,4 @@ win32 {
 unix {
     LIBS += -lodbc
 }
+LIBS += -lboost_system -lssl -lcrypto

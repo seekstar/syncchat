@@ -55,6 +55,24 @@ typedef uint64_t groupid_t;
 //message id
 typedef uint64_t msgid_t;
 
+#define NAMELEN 64
+//basic information without userid
+struct UserBasic {
+    char name[NAMELEN];
+};
+struct SignupInfo {
+    struct UserBasic basic;
+    char pwsha256[SHA256_DIGEST_LENGTH];
+};
+struct signupreply {
+    userid_t id;
+    std::chrono::days::rep day;
+};
+struct logininfo {
+    userid_t userid;
+    uint8_t pwsha256[SHA256_DIGEST_LENGTH];
+};
+
 const size_t MAX_CONTENT_LEN = 2000;
 struct MsgC2SHeader {
     userid_t to;
@@ -76,24 +94,6 @@ struct MsgS2CHeader {
 struct MsgGroupHeader {
     userid_t from;
     groupid_t to;
-};
-
-#define NAMELEN 64
-//basic information without userid
-struct UserBasic {
-    char name[NAMELEN];
-};
-struct SignupInfo {
-    struct UserBasic basic;
-    char pwsha256[SHA256_DIGEST_LENGTH];
-};
-struct signupreply {
-    userid_t id;
-    std::chrono::days::rep day;
-};
-struct logininfo {
-    userid_t userid;
-    char pwsha256[SHA256_DIGEST_LENGTH];
 };
 
 struct groupinfo {

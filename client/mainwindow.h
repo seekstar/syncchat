@@ -19,7 +19,7 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
-    std::string login(void);
+    std::string login(const char *dataSource);
     bool exec_sql(const std::string& stmt, bool critical);
     bool logout(void);
 

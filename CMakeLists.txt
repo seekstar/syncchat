@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2)
-project(server)
+project(syncchat)
 #set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -g -Wall -Wextra -fexceptions")
 set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall -Wextra -fexceptions")
@@ -36,3 +36,7 @@ target_link_libraries(server
         odbc
 )
 target_compile_features(server PRIVATE cxx_auto_type)
+
+#add_custom_target(client COMMAND cd ${PROJECT_SOURCE_DIR}/client && make all)
+#add_custom_target(client COMMAND cd ${PROJECT_SOURCE_DIR}/client && qmake)
+#add_subdirectory(client)

@@ -8,9 +8,9 @@
 
 #include "odbc.h"
 
-std::string MainWindow::login(void) {
+std::string MainWindow::login(const char *dataSource) {
     std::ostringstream info;
-    if (odbc_login(info, "wechat", NULL, NULL)) {
+    if (odbc_login(info, dataSource, NULL, NULL)) {
         return info.str();
     }
     std::string stmt("use wechat;");

@@ -1,11 +1,13 @@
 #include <cstdlib>
 #include <iostream>
+#include <stdexcept>
 
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 
 #include "odbc.h"
+//#include "tagexception.h"
 
 #include "session.h"
 
@@ -18,8 +20,9 @@ public:
 					boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
 		  context_(boost::asio::ssl::context::sslv23)
 	{
-		if (odbc_login(std::cout, dataSource, NULL, NULL)) {
-			throw "Fail: odbc_login";
+		std::ostringstream err;
+		if (odbc_login(err, dataSource, NULL, NULL)) {
+			throw std::runtime_error("odbc_login: " + err.str());
 		}
 		SQLExecDirect(serverhstmt, (SQLCHAR*)"USE wechat;", SQL_NTS);
 		context_.set_options(
@@ -77,7 +80,10 @@ int main(int argc, char *argv[])
 		}
 
 		boost::asio::io_service io_service;
-		server s(io_service, std::atoi(argv[1]), "wechat");
+		int port = atoi(argv[1]);
+		server s(io_service, port, "wechatserver");
+		std::cerr << "Listening at port " << port << std::endl;
+		//std::cout << "Listening at port " << port << std::endl;
 		io_service.run();
 	}
 	catch (std::exception &e)
