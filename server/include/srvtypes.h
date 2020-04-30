@@ -8,10 +8,10 @@
 /*struct salttype {
     uint8_t byte[SHA256_DIGEST_LENGTH];
 };*/
-struct pwinfo {
-    salttype salt;
+/*struct pwinfo {
+    uint8_t salt[SHA256_DIGEST_LENGTH];
     uint8_t pw_sha256_salt_sha256[SHA256_DIGEST_LENGTH];    //32
-};
+};*/
 //extern std::independent_bits_engine<std::default_random_engine, sizeof(salttype), salttype> gensalt;
 
 #endif  //__SRVTYPES_H__

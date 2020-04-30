@@ -2,9 +2,9 @@
 #define __TYPES_H__
 
 #include <cstdint>
-#include <chrono>
-
 #include <openssl/sha.h>
+
+#include "mychrono.h"
 
 typedef uint16_t C2SBaseType;
 enum class C2S : C2SBaseType {
@@ -24,6 +24,7 @@ enum class C2S : C2SBaseType {
 enum class S2C : uint16_t {
     OK,
     FAIL,
+    SIGNUP_REPLY,
     SOMEONE_LOGIN,
     SOMEONE_LOGOUT,
     ADD_FRIEND_REQ,
@@ -37,7 +38,6 @@ enum class S2C : uint16_t {
     P2PCONN
 };
 enum class S2COK : uint16_t {
-    SIGNUP,
     LOGIN,
     LOGOUT
 };
@@ -56,18 +56,18 @@ typedef uint64_t groupid_t;
 typedef uint64_t msgid_t;
 
 const size_t MAX_CONTENT_LEN = 2000;
-struct MsgSendHeader {
+struct MsgC2SHeader {
     userid_t to;
     msgid_t reply;
     size_t len; //length of content
 };
-struct MsgS2CReplyHeader {
+struct MsgS2CReply {
     msgid_t msgid;
-    std::chrono::milliseconds time;
+    std::chrono::milliseconds::rep time;
 };
-struct MsgRecvHeader {
+struct MsgS2CHeader {
     msgid_t msgid;
-    std::chrono::milliseconds time;
+    std::chrono::milliseconds::rep time;
     userid_t from;
     msgid_t reply;
     size_t len; //length of content
@@ -80,12 +80,16 @@ struct MsgGroupHeader {
 
 #define NAMELEN 64
 //basic information without userid
-struct userbasic {
+struct UserBasic {
     char name[NAMELEN];
 };
-struct signupinfo {
-    struct userbasic basic;
+struct SignupInfo {
+    struct UserBasic basic;
     char pwsha256[SHA256_DIGEST_LENGTH];
+};
+struct signupreply {
+    userid_t id;
+    std::chrono::days::rep day;
 };
 struct logininfo {
     userid_t userid;

@@ -35,25 +35,14 @@ bool MainWindow::logout(void) {
 
 bool MainWindow::exec_sql(const std::string& stmt, bool critical) {
     qDebug() << stmt.c_str();
-    SQLRETURN ret = SQLExecDirect(serverhstmt,(SQLCHAR*)(stmt.c_str()),SQL_NTS);
-    bool fail = (ret != SQL_SUCCESS && ret != SQL_SUCCESS_WITH_INFO);
+    std::ostringstream err;
+    bool fail = odbc_exec(err, stmt.c_str());
     if (fail) {
-        SQLINTEGER errnative;
-
-        UCHAR errmsg[255];
-        SQLSMALLINT errmsglen;
-
-        UCHAR errstate[5];
-        SQLGetDiagRec(SQL_HANDLE_STMT, serverhstmt,
-               1, errstate,
-               &errnative, errmsg, sizeof(errmsg), &errmsglen);
-        std::ostringstream err;
-        err << "errstate: " << errstate << "\nerrnative: " << errnative << "\nerrmsg: " << errmsg;
         if (critical) {
-            qDebug() << ("ERROR!");
+            qDebug() << "ERROR!";
             QMessageBox::critical(this, "Execute error!", QString(err.str().c_str()));
         } else {
-            qDebug() << "Uncritical execute error:\n" << err.str().c_str() << errmsg;
+            qDebug() << "Uncritical execute error:" << err.str().c_str();
         }
     }
     return fail;

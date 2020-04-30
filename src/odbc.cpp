@@ -1,5 +1,7 @@
 #include "odbc.h"
 
+#include <ostream>
+
 SQLHENV serverhenv;
 SQLHDBC serverhdbc;
 SQLHSTMT serverhstmt;
@@ -50,21 +52,21 @@ bool odbc_login(std::ostream& errInfo, const char* dataSource, const char* user,
 ERR_HANDLE_STMT:
     //断开数据库连接
     ret=SQLDisconnect(serverhdbc);
-    if(SQL_SUCCESS!=ret&&SQL_SUCCESS_WITH_INFO!=ret) {
+    if(!SQL_SUCCEEDED(ret)) {
         errInfo<<"disconnected error!"<<std::endl;
         return 1;
     }
 ERR_CONNECT:
     //释放连接句柄
     ret=SQLFreeHandle(SQL_HANDLE_DBC,serverhdbc);
-    if(SQL_SUCCESS!=ret&&SQL_SUCCESS_WITH_INFO!=ret) {
+    if(!SQL_SUCCEEDED(ret)) {
         errInfo<<"free hdbc error!"<<std::endl;
         return 1;
     }
 ERR_HANDLE_DBC:
     //释放环境句柄句柄
     ret=SQLFreeHandle(SQL_HANDLE_ENV,serverhenv);
-    if(SQL_SUCCESS!=ret&&SQL_SUCCESS_WITH_INFO!=ret) {
+    if(!SQL_SUCCEEDED(ret)) {
         errInfo<<"free henv error!"<<std::endl;
         return 1;
     }
@@ -77,27 +79,45 @@ bool odbc_logout(std::ostream& errInfo) {
 
     //释放语句句柄
     ret=SQLFreeHandle(SQL_HANDLE_STMT,serverhstmt);
-    if(SQL_SUCCESS!=ret && SQL_SUCCESS_WITH_INFO != ret) {
+    if(!SQL_SUCCEEDED(ret)) {
         errInfo<<"free hstmt error!"<<std::endl;
         return 1;
     }
     //断开数据库连接
     ret=SQLDisconnect(serverhdbc);
-    if(SQL_SUCCESS!=ret&&SQL_SUCCESS_WITH_INFO!=ret) {
+    if(!SQL_SUCCEEDED(ret)) {
         errInfo<<"disconnected error!"<<std::endl;
         return 1;
     }
     //释放连接句柄
     ret=SQLFreeHandle(SQL_HANDLE_DBC,serverhdbc);
-    if(SQL_SUCCESS!=ret&&SQL_SUCCESS_WITH_INFO!=ret) {
+    if(!SQL_SUCCEEDED(ret)) {
         errInfo<<"free hdbc error!"<<std::endl;
         return 1;
     }
     //释放环境句柄句柄
     ret=SQLFreeHandle(SQL_HANDLE_ENV,serverhenv);
-    if(SQL_SUCCESS!=ret&&SQL_SUCCESS_WITH_INFO!=ret) {
+    if(!SQL_SUCCEEDED(ret)) {
         errInfo<<"free henv error!"<<std::endl;
         return 1;
     }
     return 0;
+}
+
+bool odbc_exec(std::ostream& err, const char *stmt) {
+    SQLRETURN ret = SQLExecDirect(serverhstmt, (SQLCHAR*)(stmt), SQL_NTS);
+    bool fail = (ret != SQL_SUCCESS && ret != SQL_SUCCESS_WITH_INFO);
+    if (fail) {
+        SQLINTEGER errnative;
+
+        UCHAR errmsg[255];
+        SQLSMALLINT errmsglen;
+
+        UCHAR errstate[5];
+        SQLGetDiagRec(SQL_HANDLE_STMT, serverhstmt,
+               1, errstate,
+               &errnative, errmsg, sizeof(errmsg), &errmsglen);
+        err << "errstate: " << errstate << "\nerrnative: " << errnative << "\nerrmsg: " << errmsg;
+    }
+    return fail;
 }

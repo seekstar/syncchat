@@ -3,9 +3,10 @@
 
 #include <iostream>
 
-struct _emptycout {
-    template <typename T>
-    _emptycout& operator << (T val) {(void)val; return this;}
+class _emptycout : std::ostream {
+public:
+	template <typename T>
+	_emptycout& operator << (T val) {(void)val; return *this;}
 };
 
 extern _emptycout emptycout;
@@ -18,4 +19,4 @@ extern _emptycout emptycout;
 #endif //DEBUG
 #endif //dbgcout
 
-#endif
+#endif //CPPBASE_H_

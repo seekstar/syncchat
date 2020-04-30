@@ -19,6 +19,7 @@ public:
     void start();
 
 private:
+    void listen_signup_or_login();
     void listen_signup_or_login(const boost::system::error_code& error);
     void handle_signup_or_login(const boost::system::error_code& error);
     void handle_signup(const boost::system::error_code& error);
@@ -36,15 +37,18 @@ private:
     
     userid_t userid;
 
-    const static size_t bufsize = MAX_CONTENT_LEN;
+    //const static size_t bufsize = MAX_CONTENT_LEN;
+    const static size_t bufsize = 4096;
     char buf_[bufsize];
     static_assert(sizeof(enum C2S) <= bufsize &&
-        sizeof(struct MsgSendHeader) <= bufsize);
+        sizeof(MsgC2SHeader) <= bufsize &&
+        sizeof (SignupInfo) + 2 * SHA_DIGEST_LENGTH +
+            sizeof(S2C) + sizeof(struct signupreply) <= bufsize);
     //session *to;
     userid_t touser_;
     //size_t left;
     ssl_socket* socket2_;
-    struct MsgRecvHeader msgRecvHeader;
+    struct MsgS2CHeader msgS2CHeader;
 };
 
 #endif //SESSION_H_
