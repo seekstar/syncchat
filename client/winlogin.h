@@ -19,12 +19,15 @@ public Q_SLOTS:
     void login();
 
 private:
-    void read_login_reply();
+    void handle_error(const boost::system::error_code& error, const char *where);
+    void read_login_reply(const boost::system::error_code& error);
 
     Ui::WinLogin *ui;
     bool busy;
 
-    const static int BUFSIZE = 4096;
+    const static int BUFSIZE = std::max({
+        sizeof(C2SHeader) + sizeof(LoginInfo)
+    });
     char buf_[BUFSIZE];
 };
 

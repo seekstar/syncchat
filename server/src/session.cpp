@@ -4,7 +4,7 @@
 #include <random>
 
 #include "escape.h"
-#include "odbc.h"
+#include "odbcbase.h"
 #include "cppbase.h"
 #include "myrandom.h"
 #include "mychrono.h"
@@ -271,6 +271,7 @@ void session::handle_msg(const boost::system::error_code& error) {
 }
 void session::IgnoreMsgContent(size_t len) {
     if (len) {
+        //QUESTION: std::min(len, BUFSIZE) will cause a compile error. The reasion is unclear.
         size_t sz = std::min(len, sizeof(buf_));
         boost::asio::async_read(socket_,
             boost::asio::buffer(buf_, sz),

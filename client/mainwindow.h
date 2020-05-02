@@ -19,16 +19,9 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
-    std::string login(const char *dataSource);
-    bool exec_sql(const std::string& stmt, bool critical);
-    bool logout(void);
-
-private Q_SLOTS:
-    void execSqlSlot(const std::string& stmt, bool critical);
-
 private:
     Ui::MainWindow *ui;
-    QDialog *moments;
+    //QDialog *moments;
 };
 
 #endif // MAINWINDOW_H

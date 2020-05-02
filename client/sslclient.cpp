@@ -1,20 +1,20 @@
 #include "sslclient.h"
 #include <QMessageBox>
 #include <QEventLoop>
+#include <QDebug>
 
 #include <iostream>
 #include <boost/bind.hpp>
 
 #include "winlogin.h"
+#include "types.h"
 
-ssl_socket *socket_;
+transaction_t last_tsid = 0;
 
 void handle_error(const boost::system::error_code& error, const char *title) {
     QMessageBox::critical(NULL, title, QString(error.message().c_str()));
     delete socket_;
-    //a->quit();
-    //QEventLoop::quit();
-    exit(0);
+    dialogReconnect->show();
 }
 
 void handle_handshake(const boost::system::error_code& error)
@@ -27,17 +27,6 @@ void handle_handshake(const boost::system::error_code& error)
     WinLogin *winLogin = new WinLogin;
     winLogin->setAttribute(Qt::WA_DeleteOnClose);
     winLogin->show();
-
-    /*mainWindow = new MainWindow;
-    const char *dataSource = "wechatclient";
-    std::string errorInfo = mainWindow->login(dataSource);
-    if (errorInfo != "") {
-        QMessageBox::critical(NULL, "Login error", QString(errorInfo.c_str()) +
-                              "\nPlease make sure that there is an odbc data source named " + dataSource + '!');
-        mainWindow->deleteLater();
-        //return 0;
-    }*/
-    //mainWindow->show();
 }
 
 void handle_connect(const boost::system::error_code& error)
@@ -69,22 +58,26 @@ bool verify_certificate(bool preverified,
 }
 
 void sslconn() {
-    boost::asio::io_service io_service;
-
-    boost::asio::ip::tcp::resolver resolver(io_service);
-    boost::asio::ip::tcp::resolver::query query("127.0.0.1", "5188");
     boost::asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
 
     boost::asio::ssl::context ctx(boost::asio::ssl::context::sslv23);
     //system("pwd");
     ctx.load_verify_file("ca.pem");
 
-    socket_ = new ssl_socket(io_service, ctx);
     socket_->set_verify_mode(boost::asio::ssl::verify_peer);
     socket_->set_verify_callback(verify_certificate);
 
     boost::asio::async_connect(socket_->lowest_layer(), iterator,
                                boost::bind(handle_connect, boost::asio::placeholders::error));
 
-    io_service.run();
+    if (io_service.stopped()) {
+        qDebug() << "run io_service";
+        io_service.run();
+        qDebug() << "io_service stopped";
+    }
+}
+
+void reconnect() {
+    delete socket_;
+    sslconn();
 }

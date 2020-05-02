@@ -29,17 +29,26 @@ SOURCES += ../src/*\
         mainwindow.cpp \
     winlogin.cpp \
     sslclient.cpp \
-    dialogsignup.cpp
+    dialogsignup.cpp \
+    myodbc.cpp \
+    dialogreconnect.cpp \
+    mainmanager.cpp \
+    sslmanager.cpp
 
 HEADERS  += ../include/*\
     mainwindow.h \
     winlogin.h \
     sslclient.h \
-    dialogsignup.h
+    dialogsignup.h \
+    myodbc.h \
+    dialogreconnect.h \
+    mainmanager.h \
+    sslmanager.h
 
 FORMS    += mainwindow.ui \
     winlogin.ui \
-    dialogsignup.ui
+    dialogsignup.ui \
+    dialogreconnect.ui
 
 win32 {
     DEFINES  -= UNICODE
