@@ -5,7 +5,7 @@
 
 namespace std {
 namespace chrono {
-typedef duration<int, ratio<3600*24, 1> > days;
+typedef duration<int32_t, ratio<3600*24, 1> > days;
 }
 }
 

@@ -35,7 +35,9 @@ target_link_libraries(server
         boost_system
         odbc
 )
-target_compile_features(server PRIVATE cxx_auto_type)
+#target_compile_features(server PRIVATE cxx_auto_type)
+set_target_properties(server PROPERTIES CXX_STANDARD 14)
+
 
 #add_custom_target(client COMMAND cd ${PROJECT_SOURCE_DIR}/client && make all)
 #add_custom_target(client COMMAND cd ${PROJECT_SOURCE_DIR}/client && qmake)

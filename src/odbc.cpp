@@ -117,7 +117,7 @@ bool odbc_exec(std::ostream& err, const char *stmt) {
         SQLGetDiagRec(SQL_HANDLE_STMT, serverhstmt,
                1, errstate,
                &errnative, errmsg, sizeof(errmsg), &errmsglen);
-        err << "errstate: " << errstate << "\nerrnative: " << errnative << "\nerrmsg: " << errmsg;
+        err << "Error when executing: " << stmt << "\nerrstate: " << errstate << "\nerrnative: " << errnative << "\nerrmsg: " << errmsg;
     }
     return fail;
 }

@@ -10,14 +10,15 @@
 //#include "tagexception.h"
 
 #include "session.h"
+//#include "sender.h"
 
 class server
 {
 public:
-	server(boost::asio::io_service &io_service, unsigned short port, const char *dataSource)
+	server(boost::asio::io_service &io_service, unsigned short portReq, const char *dataSource)
 		: io_service_(io_service),
 		  acceptor_(io_service,
-					boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
+					boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), portReq)),
 		  context_(boost::asio::ssl::context::sslv23)
 	{
 		std::ostringstream err;
@@ -26,29 +27,24 @@ public:
 		}
 		SQLExecDirect(serverhstmt, (SQLCHAR*)"USE wechat;", SQL_NTS);
 		context_.set_options(
-			boost::asio::ssl::context::default_workarounds | boost::asio::ssl::context::no_sslv2 | boost::asio::ssl::context::single_dh_use);
+			boost::asio::ssl::context::default_workarounds | boost::asio::ssl::context::no_sslv2
+			 | boost::asio::ssl::context::single_dh_use);
 		//context_.set_password_callback(boost::bind(&server::get_password, this));
 		context_.use_certificate_chain_file("server.pem");
 		context_.use_private_key_file("server.pem", boost::asio::ssl::context::pem);
 		context_.use_tmp_dh_file("dh2048.pem");
 
-		start_accept();
+		start_accept_req();
 	}
 
-	/*std::string get_password() const
-  {
-    return "test";
-  }*/
-
-	void start_accept()
+	void start_accept_req()
 	{
 		session *new_session = new session(io_service_, context_);
 		acceptor_.async_accept(new_session->socket(),
-							   boost::bind(&server::handle_accept, this, new_session,
+							   boost::bind(&server::handle_accept_req, this, new_session,
 										   boost::asio::placeholders::error));
 	}
-
-	void handle_accept(session *new_session,
+	void handle_accept_req(session *new_session,
 					   const boost::system::error_code &error)
 	{
 		if (!error)
@@ -60,7 +56,7 @@ public:
 			delete new_session;
 		}
 
-		start_accept();
+		start_accept_req();
 	}
 
 private:

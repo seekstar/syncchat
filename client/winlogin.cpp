@@ -29,9 +29,11 @@ WinLogin::WinLogin(QWidget *parent) :
 
 void WinLogin::read_login_reply(const boost::system::error_code& error) {
     if (error) {
-        //TODO
+        //QMessageBox::information(this, "error", "read_login_reply error");
+        qDebug() << "Error: read_login_reply\n";
+        return;
     }
-    //boost::asio::
+
 }
 
 void WinLogin::login() {
