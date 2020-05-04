@@ -2,8 +2,7 @@
 #include "ui_winlogin.h"
 
 #include <QMessageBox>
-
-#include "dialogsignup.h"
+#include <QDebug>
 
 #include <openssl/sha.h>
 #include <boost/lexical_cast.hpp>
@@ -11,7 +10,9 @@
 #include <boost/bind.hpp>
 
 #include "types.h"
-#include "sslclient.h"
+#include "sslbase.h"
+
+#include "myglobal.h"
 
 WinLogin::WinLogin(QWidget *parent) :
     QWidget(parent),
@@ -20,11 +21,21 @@ WinLogin::WinLogin(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    connect(ui->btn_signup, &QPushButton::clicked, [this]{
-        DialogSignup signup(this);
-        signup.exec();
+    connect(&dialogSignup, &DialogSignup::sigErr, this, &WinLogin::sigErr);
+    connect(&dialogSignup, &DialogSignup::sigDone, &dialogSignup, &DialogSignup::close);
+    //connect(ui->btn_signup, &QPushButton::clicked, dialogSignup, &DialogSignup::exec);
+    connect(ui->btn_signup, &QPushButton::clicked, [&] {
+        if (!busy) {
+            dialogSignup.exec();
+        }
     });
     connect(ui->btn_login, &QPushButton::clicked, this, &WinLogin::login);
+}
+
+void WinLogin::resetSock(ssl_socket *sock) {
+    socket_ = sock;
+    qDebug() << "socket_ in WinLogin resetted";
+    dialogSignup.resetSock(sock);
 }
 
 void WinLogin::login() {
@@ -32,6 +43,7 @@ void WinLogin::login() {
         qDebug() << "busy";
         return;
     }
+    busy = true;
 
     struct C2SHeader *c2sHeader = reinterpret_cast<struct C2SHeader *>(buf_);
     struct LoginInfo *loginInfo = reinterpret_cast<struct LoginInfo *>(c2sHeader + 1);
@@ -41,28 +53,25 @@ void WinLogin::login() {
         QMessageBox::information(this, "Error", QString("Illegal userid") + e.what());
         return;
     }
-    SHA256(ui->pw->text().toStdString().c_str(), ui->pw->text().size(), logininfo->pwsha256);
+    SHA256(reinterpret_cast<const uint8_t*>(ui->pw->text().toStdString().c_str()), ui->pw->text().size(), loginInfo->pwsha256);
     c2sHeader->tsid = ++last_tsid;
     c2sHeader->type = C2S::LOGIN;
+    qDebug() << "Before read_login_reply";
     boost::asio::async_write(*socket_,
         boost::asio::buffer(buf_, sizeof(C2SHeader) + sizeof(LoginInfo)),
         boost::bind(&WinLogin::read_login_reply, this,
                     boost::asio::placeholders::error));
 }
-void WinLogin::handle_error(const boost::system::error_code& error, const char *where) {
-    qDebug() << ("Error in " + where + ": " + error.message());
-
-    reconnect();
-}
 
 #define HANDLE_ERROR    \
     if (error) {        \
-        handle_error(error, __PRETTY_FUNCTION__);\
+        emit sigErr(std::string("Error in ") + __PRETTY_FUNCTION__ + ": " + error.message());\
+        busy = false;   \
         return;         \
     }
 
-//TODO: Make full use of transaction id to clear the busy status sooner
 void WinLogin::read_login_reply(const boost::system::error_code& error) {
+    qDebug() << "read_login_reply";
     HANDLE_ERROR;
     boost::asio::async_read(*socket_,
         boost::asio::buffer(buf_, sizeof(S2CHeader)),
@@ -72,20 +81,25 @@ void WinLogin::handle_login_reply(const boost::system::error_code& error) {
     HANDLE_ERROR;
     struct S2CHeader *s2cHeader = reinterpret_cast<struct S2CHeader *>(buf_);
     if (s2cHeader->tsid != last_tsid) {
-        qDebug() << ("Warning: transaction id uncorrect! Expected " + last_tsid);
+        qDebug() << ("Warning: transaction id incorrect! Expected " + last_tsid);
     }
     switch (s2cHeader->type) {
     case S2C::LOGIN_OK:
-        mainWindow = new MainWindow;
-        const char *dataSource = "wechatclient";
-        std::string errorInfo = mainWindow->login(dataSource);
-        if (errorInfo != "") {
-            QMessageBox::critical(this, "Login error", QString(errorInfo.c_str()) +
-                                  "\nPlease make sure that there is an odbc data source named " + dataSource + '!');
-            mainWindow->deleteLater();
-        }
+        emit sigDone();
+        break;
+    case S2C::ALREADY_LOGINED:
+        qDebug() << "Warning: ALREADY_LOGINED";
+        break;
+    case S2C::WRONG_PASSWORD:
+        QMessageBox::information(this, "提示", "密码错误");
+        break;
+    default:
+        qDebug() << (std::string("Warning in ") + __PRETTY_FUNCTION__ + ": Unrecognized type " +
+                     std::to_string((S2CBaseType)s2cHeader->type)).c_str();
         break;
     }
+    busy = false;
+    qDebug() << "free now";
 }
 
 WinLogin::~WinLogin()

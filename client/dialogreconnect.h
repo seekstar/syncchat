@@ -15,6 +15,11 @@ public:
     explicit DialogReconnect(QWidget *parent = 0);
     ~DialogReconnect();
 
+    void ShowErr(std::string msg);
+
+signals:
+    void sigRetry(void);
+
 private:
     Ui::DialogReconnect *ui;
 };

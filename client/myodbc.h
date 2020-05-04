@@ -3,8 +3,8 @@
 
 #include <string>
 
-bool login(void);
-bool logout(void);
+bool myodbcLogin(void);
+bool myodbcLogout(void);
 bool exec_sql(const std::string& stmt, bool critical);
 
 #endif // MYODBC_H

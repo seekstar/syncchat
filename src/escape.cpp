@@ -20,3 +20,14 @@ std::string escape(std::string s) {
     }
     return out;
 }
+
+std::string escape(const char *s, size_t len) {
+    std::string out;
+    for (size_t i = 0; i < len; ++i) {
+        if (NeedEscape(s[i])) {
+            out += '\\';
+        }
+        out += s[i];
+    }
+    return out;
+}

@@ -3,25 +3,30 @@
 
 #include <QObject>
 
-#include "mainwindow.h"
 #include "dialogreconnect.h"
 #include "sslmanager.h"
+
+#include "winlogin.h"
+#include "mainwindow.h"
 
 class MainManager : public QObject
 {
     Q_OBJECT
 public:
-    explicit MainManager(QObject *parent = 0);
+    explicit MainManager(const char *ip, const char *port, QObject *parent = 0);
+    ~MainManager();
 
 signals:
 
 public slots:
 
 private:
-    DialogReconnect dialogReconnect;
     SslManager sslManager;
+    DialogReconnect dialogReconnect;
+
+    //DialogSignup dialogSignup;
+    WinLogin winLogin;
     MainWindow mainWindow;
-    QTimer qtimer;
 };
 
 #endif // MAINMANAGER_H

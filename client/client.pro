@@ -28,22 +28,22 @@ SOURCES += ../src/*\
         main.cpp\
         mainwindow.cpp \
     winlogin.cpp \
-    sslclient.cpp \
     dialogsignup.cpp \
     myodbc.cpp \
     dialogreconnect.cpp \
     mainmanager.cpp \
-    sslmanager.cpp
+    sslmanager.cpp \
+    myglobal.cpp
 
 HEADERS  += ../include/*\
     mainwindow.h \
     winlogin.h \
-    sslclient.h \
     dialogsignup.h \
     myodbc.h \
     dialogreconnect.h \
     mainmanager.h \
-    sslmanager.h
+    sslmanager.h \
+    myglobal.h
 
 FORMS    += mainwindow.ui \
     winlogin.ui \

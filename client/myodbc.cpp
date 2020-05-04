@@ -1,31 +1,33 @@
 #include "myodbc.h"
 
-#include <sstream>
 #include <QMessageBox>
+#include <QDebug>
+
+#include <sstream>
 
 #include "odbcbase.h"
 
-bool login(void) {
+bool myodbcLogin(void) {
     std::ostringstream err;
     if (odbc_driver_connect(err, "Driver=SQLite3;Database=syncchatclient.db")) {
         QMessageBox::critical(NULL, "Can not open syncchatclient.db", err.str().c_str());
         return true;
     }
-    exec_sql("CREATE DATABASE syncchat;", false);
+    /*exec_sql("CREATE DATABASE syncchat;", false);
     if (exec_sql("USE syncchat;", true)) {
         return true;
-    }
+    }*/
     exec_sql("CREATE TABLE msg ("
              "msgid BIGINT UNSIGNED PRIMARY KEY,"
              "time BIGINT COMMENT '服务器接收到消息的时间',"
-             "from BIGINT UNSIGNED COMMENT '发送方id',"
+             "sender BIGINT UNSIGNED COMMENT '发送方id',"
              "content BLOB(2000)"
              ");", false);
     return false;
 }
 
-bool logout(void) {
-    if (SQL_NULL_HSTMT == serverhstmt) {
+bool myodbcLogout(void) {
+    if (SQL_NULL_HSTMT == hstmt) {
         return false;
     }
     std::ostringstream info;

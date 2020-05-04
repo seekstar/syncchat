@@ -5,7 +5,7 @@
 
 #include "sqlext_compatible.h"
 
-extern SQLHSTMT serverhstmt;
+extern SQLHSTMT hstmt;
 
 bool odbc_connect(std::ostream& err, const char* dataSource, const char* user, const char* passwd);
 bool odbc_driver_connect(std::ostream& err, const char *connStr);

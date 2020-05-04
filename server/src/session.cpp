@@ -35,15 +35,17 @@ void session::SendLater(void *data, size_t len) {
     } else {
         sending.resize(len);
         memcpy(sending.data(), data, len);
+        dbgcout << "sending " << len << " bytes\n";
         boost::asio::async_write(socket_,
-            boost::asio::buffer(sending, len),
+            boost::asio::buffer(sending),
             boost::bind(&session::handle_send, this, boost::asio::placeholders::error));
     }
 }
 void session::StartSend() {
     swap(sendbuf, sending);
+    dbgcout << "sending " << sending.size() << " bytes\n";
     boost::asio::async_write(socket_,
-        boost::asio::buffer(sending.data(), sending.size()),
+        boost::asio::buffer(sending),
         boost::bind(&session::handle_send, this, boost::asio::placeholders::error));
 }
 void session::handle_send(const boost::system::error_code& error) {
@@ -74,7 +76,7 @@ void session::start() {
         boost::asio::placeholders::error));
 }
 void session::listen_signup_or_login() {
-    static_assert(sizeof(C2SHeader) <= BUFSIZE);
+    dbgcout << "listen_signup_or_login\n";
     boost::asio::async_read(socket_,
         boost::asio::buffer(buf_, sizeof(C2SHeader)),
         boost::bind(&session::handle_signup_or_login, this, boost::asio::placeholders::error));
@@ -91,15 +93,21 @@ void session::handle_signup_or_login(const boost::system::error_code& error) {
         reset();
         return;
     }
+    dbgcout << "handle_signup_or_login\n";
     struct C2SHeader *header = reinterpret_cast<struct C2SHeader *>(buf_);
     switch (header->type) {
+    case C2S::IMALIVE:
+        dbgcout << "client alive\n";
+        break;
     case C2S::SIGNUP:
+        dbgcout << "signup request\n";
         boost::asio::async_read(socket_,
             boost::asio::buffer(buf_, sizeof(SignupHeader)),
             boost::bind(&session::HandleSignupHeader, this, 
                 header->tsid, boost::asio::placeholders::error));
         break;
     case C2S::LOGIN:
+        dbgcout << "login request\n";
         boost::asio::async_read(socket_,
             boost::asio::buffer(buf_, sizeof(LoginInfo)),
             boost::bind(&session::handle_login, this, header->tsid,
@@ -119,6 +127,11 @@ void session::HandleSignupHeader(transactionid_t tsid, const boost::system::erro
     struct SignupHeader *header = reinterpret_cast<struct SignupHeader *>(buf_);
     if (header->namelen > MAX_USERNAME_LEN) {
         SendType(tsid, S2C::USERNAME_TOO_LONG);
+        listen_signup_or_login();
+        return;
+    }
+    if (header->phonelen > MAX_PHONE_LEN) {
+        SendType(tsid, S2C::PHONE_TOO_LONG);
         listen_signup_or_login();
         return;
     }
@@ -151,39 +164,46 @@ void session::HandleSignup(transactionid_t tsid, const boost::system::error_code
     signupreply->day = duration_cast<days>(system_clock::now().time_since_epoch()).count();
 
     SQLLEN length;
-    SQLRETURN retcode = SQLBindParameter(serverhstmt, 1, SQL_PARAM_OUTPUT, SQL_C_UBIGINT,
+    SQLRETURN retcode = SQLBindParameter(hstmt, 1, SQL_PARAM_OUTPUT, SQL_C_UBIGINT,
         SQL_BIGINT, 0, 0, &signupreply->id, 0, &length);
     if (!SQL_SUCCEEDED(retcode)) {
         std::cerr << "HandleSignup: SQLBindParameter of user id Failed" << std::endl;
-        listen_signup_or_login();
+        //listen_signup_or_login();
+        reset();
         return;
     }
-    retcode = SQLBindParameter(serverhstmt, 2, SQL_PARAM_INPUT, SQL_C_BINARY,
+    retcode = SQLBindParameter(hstmt, 2, SQL_PARAM_INPUT, SQL_C_BINARY,
         SQL_BINARY, SHA256_DIGEST_LENGTH, 0, salt, SHA256_DIGEST_LENGTH, NULL);
     if (!SQL_SUCCEEDED(retcode)) {
         std::cerr << "HandleSignup: SQLBindParameter of user salt Failed" << std::endl;
-        listen_signup_or_login();
+        //listen_signup_or_login();
+        reset();
         return;
     } 
-    retcode = SQLBindParameter(serverhstmt, 3, SQL_PARAM_INPUT, SQL_C_BINARY,
+    retcode = SQLBindParameter(hstmt, 3, SQL_PARAM_INPUT, SQL_C_BINARY,
         SQL_BINARY, SHA256_DIGEST_LENGTH, 0, res, SHA256_DIGEST_LENGTH, NULL);
     if (!SQL_SUCCEEDED(retcode)) {
         std::cerr << "HandleSignup: SQLBindParameter of user pw Failed" << std::endl;
-        listen_signup_or_login();
+        //listen_signup_or_login();
+        reset();
         return;
     }
     std::string stmt = "{CALL insert_user(?, " +
         std::to_string(signupreply->day) + ',' +
-        '"' + escape(name) + "\"," +
-        '"' + escape(phone) + "\"," +
+        '"' + escape(name, header->namelen) + "\"," +
+        '"' + escape(phone, header->phonelen) + "\"," +
         "?, ?)}";
     if (odbc_exec(std::cerr, stmt.c_str())) {
-        listen_signup_or_login();
+        reset();
+        //listen_signup_or_login();
         return;
     }
-    boost::asio::async_write(socket_,
-        boost::asio::buffer(s2cHeader, sizeof(S2CHeader) + sizeof(SignupReply)),
-        boost::bind(&session::listen_signup_or_login, this, boost::asio::placeholders::error));
+    dbgcout << "Signup ok. id = " << signupreply->id << '\n';
+    SendLater(s2cHeader, sizeof(S2CHeader) + sizeof(SignupReply));
+    listen_signup_or_login();
+    // boost::asio::async_write(socket_,
+    //     boost::asio::buffer(s2cHeader, sizeof(S2CHeader) + sizeof(SignupReply)),
+    //     boost::bind(&session::listen_signup_or_login, this, boost::asio::placeholders::error));
 }
 void session::handle_login(transactionid_t tsid, const boost::system::error_code& error) {
     if (error) {
@@ -195,22 +215,31 @@ void session::handle_login(transactionid_t tsid, const boost::system::error_code
     uint8_t *pw = salt + SHA256_DIGEST_LENGTH;
     uint8_t *res = pw + SHA256_DIGEST_LENGTH;
 
-    if (odbc_exec(std::cerr, ("SELECT salt FROM user WHERE userid = " + 
-        std::to_string(loginInfo->userid) + ';').c_str())
+    std::string stmt("SELECT salt FROM user WHERE userid = " + 
+        std::to_string(loginInfo->userid) + ';');
+    if (odbc_exec(std::cerr, stmt.c_str())
     ) {
-        listen_signup_or_login();
+        std::cerr << "Error: handle_login: odbc_exec " << stmt << '\n';
+        reset();
         return;
     }
     SQLLEN length;
-    SQLBindCol(serverhstmt, 1, SQL_C_BINARY, salt, SHA256_DIGEST_LENGTH, &length);
-    SQLBindCol(serverhstmt, 2, SQL_C_BINARY, pw, SHA256_DIGEST_LENGTH, &length);
-    SQLFetch(serverhstmt);
+    SQLBindCol(hstmt, 1, SQL_C_BINARY, salt, SHA256_DIGEST_LENGTH, &length);
+    SQLBindCol(hstmt, 2, SQL_C_BINARY, pw, SHA256_DIGEST_LENGTH, &length);
+    if (SQL_NO_DATA == SQLFetch(hstmt)) {
+        dbgcout << "NO_SUCH_USER\n";
+        SendType(tsid, S2C::NO_SUCH_USER);
+        listen_signup_or_login();
+        return;
+    }
     SHA256(loginInfo->pwsha256, 2 * SHA256_DIGEST_LENGTH, res);
     if (memcmp(pw, res, SHA256_DIGEST_LENGTH)) {
+        dbgcout << "WRONG_PASSWORD\n";
         SendType(tsid, S2C::WRONG_PASSWORD);
         listen_signup_or_login();
         return;
     }
+    dbgcout << "LOGIN_OK\n";
     SendType(tsid, S2C::LOGIN_OK);
     userid = loginInfo->userid;
     user_session[userid] = this;
@@ -234,6 +263,7 @@ void session::handle_request(const boost::system::error_code& error) {
         reset();
         return;
     }
+    dbgcout << "Received a request\n";
     struct C2SHeader *header = reinterpret_cast<struct C2SHeader *>(buf_);
     switch (header->type) {
     case C2S::MSG:
@@ -301,14 +331,14 @@ void session::handle_msg_content(const boost::system::error_code& error) {
     using namespace std::chrono;
     SQLLEN msgidLen = sizeof(msgid_t);
     SQLLEN contentLen = msgC2SHeader->len;
-    SQLRETURN retcode = SQLBindParameter(serverhstmt, 1, SQL_PARAM_OUTPUT, SQL_C_UBIGINT, 
+    SQLRETURN retcode = SQLBindParameter(hstmt, 1, SQL_PARAM_OUTPUT, SQL_C_UBIGINT, 
         SQL_BIGINT, 0, 0, &msgS2CReply->msgid, 0, &msgidLen);
     if (!SQL_SUCCEEDED(retcode)) {
         std::cerr << "Error: handle_msg_content: SQLBindParameter of msgid failed!\n";
         listen_request();
         return;
     }
-    retcode = SQLBindParameter(serverhstmt, 2, SQL_PARAM_INPUT, SQL_C_BINARY, SQL_BINARY,
+    retcode = SQLBindParameter(hstmt, 2, SQL_PARAM_INPUT, SQL_C_BINARY, SQL_BINARY,
         MAX_CONTENT_LEN, 0, content, msgC2SHeader->len, &contentLen);
     if (!SQL_SUCCEEDED(retcode)) {
         std::cerr << "Error: handle_msg_content: SQLBindParameter of content failed!\n";
@@ -343,4 +373,5 @@ void session::handle_msg_content(const boost::system::error_code& error) {
 void session::reset() {
     user_session.erase(userid);
     delete this;
+    dbgcout << "Disconnected\n";
 }

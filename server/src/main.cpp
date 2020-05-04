@@ -6,8 +6,8 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 
-#include "odbc.h"
-//#include "tagexception.h"
+#include "odbcbase.h"
+#include "cppbase.h"
 
 #include "session.h"
 //#include "sender.h"
@@ -22,10 +22,10 @@ public:
 		  context_(boost::asio::ssl::context::sslv23)
 	{
 		std::ostringstream err;
-		if (odbc_login(err, dataSource, NULL, NULL)) {
+		if (odbc_connect(err, dataSource, NULL, NULL)) {
 			throw std::runtime_error("odbc_login: " + err.str());
 		}
-		SQLExecDirect(serverhstmt, (SQLCHAR*)"USE wechat;", SQL_NTS);
+		SQLExecDirect(hstmt, (SQLCHAR*)"USE wechat;", SQL_NTS);
 		context_.set_options(
 			boost::asio::ssl::context::default_workarounds | boost::asio::ssl::context::no_sslv2
 			 | boost::asio::ssl::context::single_dh_use);
@@ -49,6 +49,7 @@ public:
 	{
 		if (!error)
 		{
+			dbgcout << "Accepted a client\n";
 			new_session->start();
 		}
 		else

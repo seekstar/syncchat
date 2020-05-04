@@ -14,6 +14,7 @@ typedef uint32_t transactionid_t;
 
 typedef uint32_t C2SBaseType;
 enum class C2S : C2SBaseType {
+    IMALIVE,
     //request
     SIGNUP,
     LOGIN,
@@ -28,7 +29,8 @@ enum class C2S : C2SBaseType {
     MSG_GROUP_REQ,
     P2PCONN
 };
-enum class S2C : uint32_t {
+typedef uint32_t S2CBaseType;
+enum class S2C : S2CBaseType {
     //OK
     LOGIN_OK,
     
@@ -38,6 +40,7 @@ enum class S2C : uint32_t {
     ALREADY_LOGOUTED,
     USERNAME_TOO_LONG,
     PHONE_TOO_LONG,
+    NO_SUCH_USER,
     WRONG_PASSWORD,
     MSG_TOO_LONG,
 

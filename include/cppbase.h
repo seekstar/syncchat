@@ -3,10 +3,11 @@
 
 #include <iostream>
 
+//TODO: Support std::endl
 class _emptycout : std::ostream {
 public:
 	template <typename T>
-	_emptycout& operator << (T val) {(void)val; return *this;}
+    _emptycout& operator << (T val) {(void)val; return *this;}
 };
 
 extern _emptycout emptycout;

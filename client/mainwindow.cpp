@@ -15,8 +15,11 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 }
 
+void MainWindow::resetSock(ssl_socket *sock) {
+    socket_ = sock;
+}
+
 MainWindow::~MainWindow()
 {
-    logout();
     delete ui;
 }

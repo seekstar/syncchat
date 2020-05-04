@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>126</width>
-    <height>97</height>
+    <width>223</width>
+    <height>99</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,7 +17,7 @@
    <item>
     <widget class="QLabel" name="label">
      <property name="text">
-      <string>服务器似乎开小差了</string>
+      <string/>
      </property>
     </widget>
    </item>
