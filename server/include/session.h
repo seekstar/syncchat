@@ -8,8 +8,9 @@
 
 #include "sslbase.h"
 #include "types.h"
+#include "sslio.h"
 
-class session {
+class session : public SslIO {
 public:
     session(boost::asio::io_service& io_service,
         boost::asio::ssl::context& context);
@@ -17,12 +18,9 @@ public:
     ssl_socket::lowest_layer_type& socket();
 
     void start();
-    void SendLater(void *data, size_t len);
 
 private:
-    void SendNow(void *data, size_t len);
-    void StartSend();
-    void handle_send(const boost::system::error_code& error);
+    void handle_sslio_error(const boost::system::error_code& error);
     void SendType(transactionid_t tsid, S2C type);
     void SendType(S2C type);
 
@@ -36,6 +34,9 @@ private:
     void listen_request();
     void listen_request(const boost::system::error_code& error);
     void handle_request(const boost::system::error_code& error);
+    void HandleUserPublicInfoReq(const boost::system::error_code& error);
+    void HandleAddFriendReq(const boost::system::error_code& error);
+    void HandleAddFriendReply(const boost::system::error_code& error);
     void handle_msg(const boost::system::error_code& error);
     void IgnoreMsgContent(size_t len);
     void HandleIgnore(size_t len, const boost::system::error_code& error);
@@ -43,11 +44,9 @@ private:
     void send_msg_content(const boost::system::error_code& error);
     void reset();
     
-    ssl_socket socket_;
-    //ssl_socket* socket2_;
-    bool busy;
-    
     userid_t userid;
+    //std::string username;
+    //std::string userphone;
 
     //Need C++14
     constexpr static size_t BUFSIZE = std::max({
@@ -56,14 +55,18 @@ private:
             sizeof(S2CHeader) + sizeof(SignupReply) +
              + MAX_USERNAME_LEN + MAX_PHONE_LEN,
         sizeof(LoginInfo) + 3 * SHA256_DIGEST_LENGTH,
-        sizeof(S2CHeader) + sizeof(MsgS2CHeader) + MAX_CONTENT_LEN
+        sizeof(S2CHeader) + sizeof(MsgS2CHeader) + MAX_CONTENT_LEN,
+        sizeof(C2SHeader) + sizeof(C2SAddFriendReq), 
+        sizeof(S2CHeader) + sizeof(S2CAddFriendReqHeader) + MAX_USERNAME_LEN,
+        sizeof(S2CHeader) + sizeof(S2CAddFriendReply),
+        sizeof(C2SHeader) + sizeof(userid_t),
+        sizeof(S2CHeader) + sizeof(UserPublicInfoHeader) + MAX_USERNAME_LEN
     });
     uint8_t buf_[BUFSIZE];
     /*const static size_t SBUFSIZE = std::max({
         sizeof(S2CHeader) + sizeof(signupreply),
     });
     char sbuf_[SBUFSIZE];*/
-    std::vector<uint8_t> sending, sendbuf;
 };
 
 #endif //SESSION_H_

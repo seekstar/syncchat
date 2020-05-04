@@ -17,6 +17,10 @@ bool myodbcLogin(void) {
     if (exec_sql("USE syncchat;", true)) {
         return true;
     }*/
+    exec_sql("CREATE TABLE friends ("
+             "userid BIGINT UNSIGNED PRIMARY KEY,"
+             "username CHAR(100)"
+             ");", false);
     exec_sql("CREATE TABLE msg ("
              "msgid BIGINT UNSIGNED PRIMARY KEY,"
              "time BIGINT COMMENT '服务器接收到消息的时间',"

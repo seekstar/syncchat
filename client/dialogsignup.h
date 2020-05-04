@@ -21,29 +21,22 @@ public:
     ~DialogSignup();
 
 signals:
-    void sigErr(std::string msg);
-    void sigDone();
+    void signup(std::vector<uint8_t> content);
 
 public Q_SLOTS:
-    void resetSock(ssl_socket *sock);
+    void signupRes(userid_t userid);
 
 private Q_SLOTS:
-    void signup();
+    void slotSignup();
 
 private:
-    void read_signup_reply(const boost::system::error_code& error);
-    void handle_signup_reply(const boost::system::error_code& error);
-    void handle_signup_reply2(const boost::system::error_code& error);
-
     Ui::DialogSignup *ui;
-    ssl_socket *socket_;
-    bool busy;
 
-    constexpr static size_t BUFSIZE = std::max({
-        sizeof(C2SHeader) + sizeof(SignupHeader) + MAX_USERNAME_LEN + MAX_PHONE_LEN,
-        sizeof(S2CHeader) + sizeof(SignupReply)
-    });
-    uint8_t buf_[BUFSIZE];
+//    constexpr static size_t BUFSIZE = std::max({
+//        sizeof(C2SHeader) + sizeof(SignupHeader) + MAX_USERNAME_LEN + MAX_PHONE_LEN,
+//        sizeof(S2CHeader) + sizeof(SignupReply)
+//    });
+//    uint8_t buf_[BUFSIZE];
 };
 
 #endif // DIALOGSIGNUP_H

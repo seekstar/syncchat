@@ -154,6 +154,8 @@ bool odbc_exec(std::ostream& err, const char *stmt) {
                1, errstate,
                &errnative, errmsg, sizeof(errmsg), &errmsglen);
         err << "Error when executing: " << stmt << "\nerrstate: " << errstate << "\nerrnative: " << errnative << "\nerrmsg: " << errmsg;
+    } else {
+        dbgcout << stmt << '\n';
     }
     return fail;
 }

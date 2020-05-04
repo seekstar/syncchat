@@ -22,22 +22,19 @@ public:
     ~WinLogin();
 
 signals:
-    void sigErr(std::string msg);
-    void sigDone(void);
+    void login(struct LoginInfo loginInfo);
+    void signup();
 
 public Q_SLOTS:
-    void resetSock(ssl_socket *sock);
-    void login();
+
+private Q_SLOTS:
+    void slotLogin();
 
 private:
     void handle_login_reply(const boost::system::error_code& error);
     void read_login_reply(const boost::system::error_code& error);
 
     Ui::WinLogin *ui;
-    ssl_socket *socket_;
-    bool busy;  //Prevent dialogSignup from showing and prevent relogin
-
-    DialogSignup dialogSignup;
 
     const static int BUFSIZE = std::max({
         sizeof(C2SHeader) + sizeof(LoginInfo),

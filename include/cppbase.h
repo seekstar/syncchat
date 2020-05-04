@@ -20,4 +20,6 @@ extern _emptycout emptycout;
 #endif //DEBUG
 #endif //dbgcout
 
+void DbgPrintHex(void *data, size_t len);
+
 #endif //CPPBASE_H_

@@ -3,10 +3,9 @@
 
 #include <QMainWindow>
 
-#include <QDialog>
-
 #include <string>
 #include "sslbase.h"
+#include "types.h"
 
 namespace Ui {
 class MainWindow;
@@ -20,12 +19,11 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
-    void resetSock(ssl_socket *sock);
+signals:
+    void AddFriend();
 
 private:
     Ui::MainWindow *ui;
-    ssl_socket *socket_;
-    //QDialog *moments;
 };
 
 #endif // MAINWINDOW_H

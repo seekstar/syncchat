@@ -7,6 +7,7 @@ DialogReconnect::DialogReconnect(QWidget *parent) :
 {
     ui->setupUi(this);
     connect(ui->btn_retry, &QPushButton::clicked, this, &DialogReconnect::sigRetry);
+    connect(ui->btn_retry, &QPushButton::clicked, this, &DialogReconnect::close);
 }
 
 void DialogReconnect::ShowErr(std::string msg) {

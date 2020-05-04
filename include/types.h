@@ -19,6 +19,8 @@ enum class C2S : C2SBaseType {
     SIGNUP,
     LOGIN,
     LOGOUT,
+    USER_PUBLIC_INFO_REQ,   //username
+    USER_PRIVATE_INFO_REQ,  //username, phone
     ADD_FRIEND_REQ,
     ADD_FRIEND_REPLY,
     MSG,
@@ -33,6 +35,7 @@ typedef uint32_t S2CBaseType;
 enum class S2C : S2CBaseType {
     //OK
     LOGIN_OK,
+    ADD_FRIEND_SENT,
     
     //fail
     LOGIN_FIRST,
@@ -42,10 +45,12 @@ enum class S2C : S2CBaseType {
     PHONE_TOO_LONG,
     NO_SUCH_USER,
     WRONG_PASSWORD,
+    ALREADY_FRIENDS,
     MSG_TOO_LONG,
 
     //response
     SIGNUP_RESP,
+    USER_PUBLIC_INFO,
     MSG_RESP,
     ONLINE_FRIENDS,
     MSG_GROUP_REPONSE,
@@ -97,6 +102,30 @@ struct SignupReply {
 struct LoginInfo {
     userid_t userid;                            //8
     uint8_t pwsha256[SHA256_DIGEST_LENGTH];     //32
+};
+
+struct UserPublicInfoHeader {
+    uint32_t nameLen;
+    char __padding[4];
+};
+struct C2SAddFriendReq {
+    userid_t to;
+};
+struct S2CAddFriendReqHeader {
+    userid_t from;
+    uint64_t nameLen;
+    //uint32_t remarkLen;
+};
+struct C2SAddFriendReply {
+    userid_t to;                        //8
+    bool reply; //0 is no, 1 is yes     //1
+    char __padding[8 - sizeof(reply)];  //7
+};
+struct S2CAddFriendReply {
+    //Overlap with C2SAddFriendReply
+    userid_t from;                      //8
+    bool reply;
+    char __padding[8 - sizeof(reply)];  //7
 };
 
 constexpr size_t MAX_CONTENT_LEN = 2000;

@@ -13,53 +13,18 @@
 
 std::unordered_map<userid_t, session*> user_session;
 
-session::session(boost::asio::io_service& io_service,
-        boost::asio::ssl::context& context)
-      : socket_(io_service, context),
-        busy(false)
+session::session(io_service_t& io_service, context_t& context)
+      : SslIO(io_service, context)
 {
     //to = NULL;
 }
 
 ssl_socket::lowest_layer_type&
 session::socket() {
+    //return SslIO::socket();
     return socket_.lowest_layer();
 }
 
-//TODO: Support call back function to avoid copy when not busy
-void session::SendLater(void *data, size_t len) {
-    if (busy) {
-        size_t oldsz = sendbuf.size();
-        sendbuf.resize(oldsz + len);
-        memcpy(sendbuf.data() + oldsz, data, len);
-    } else {
-        sending.resize(len);
-        memcpy(sending.data(), data, len);
-        dbgcout << "sending " << len << " bytes\n";
-        boost::asio::async_write(socket_,
-            boost::asio::buffer(sending),
-            boost::bind(&session::handle_send, this, boost::asio::placeholders::error));
-    }
-}
-void session::StartSend() {
-    swap(sendbuf, sending);
-    dbgcout << "sending " << sending.size() << " bytes\n";
-    boost::asio::async_write(socket_,
-        boost::asio::buffer(sending),
-        boost::bind(&session::handle_send, this, boost::asio::placeholders::error));
-}
-void session::handle_send(const boost::system::error_code& error) {
-    if (error) {
-        reset();
-        return;
-    }
-    sending.clear();
-    if (sendbuf.empty()) {
-        busy = false;
-    } else {
-        StartSend();
-    }
-}
 void session::SendType(transactionid_t tsid, S2C type) {
     reinterpret_cast<struct S2CHeader *>(buf_)->tsid = tsid;
     SendType(type);
@@ -81,6 +46,12 @@ void session::listen_signup_or_login() {
         boost::asio::buffer(buf_, sizeof(C2SHeader)),
         boost::bind(&session::handle_signup_or_login, this, boost::asio::placeholders::error));
 }
+#define HANDLE_ERROR    \
+    if (error) {        \
+        reset();        \
+        return;         \
+    }
+
 void session::listen_signup_or_login(const boost::system::error_code& error) {
     if (error) {
         reset();
@@ -157,6 +128,13 @@ void session::HandleSignup(transactionid_t tsid, const boost::system::error_code
 
     genrand(salt, SHA256_DIGEST_LENGTH);
     SHA256(header->pwsha256, 2 * SHA256_DIGEST_LENGTH, res);
+    dbgcout << "sha256 of password: \n";
+    DbgPrintHex(header->pwsha256, SHA256_DIGEST_LENGTH);
+    dbgcout << "\nsalt generated is: \n";
+    DbgPrintHex(salt, SHA256_DIGEST_LENGTH);
+    dbgcout << "\nsha256(pwsha256, salt) is: \n";
+    DbgPrintHex(res, SHA256_DIGEST_LENGTH);
+    dbgcout << '\n';
 
     using namespace std::chrono;
     s2cHeader->tsid = tsid;
@@ -172,16 +150,18 @@ void session::HandleSignup(transactionid_t tsid, const boost::system::error_code
         reset();
         return;
     }
+    length = SHA256_DIGEST_LENGTH;
     retcode = SQLBindParameter(hstmt, 2, SQL_PARAM_INPUT, SQL_C_BINARY,
-        SQL_BINARY, SHA256_DIGEST_LENGTH, 0, salt, SHA256_DIGEST_LENGTH, NULL);
+        SQL_BINARY, SHA256_DIGEST_LENGTH, 0, salt, SHA256_DIGEST_LENGTH, &length);
     if (!SQL_SUCCEEDED(retcode)) {
         std::cerr << "HandleSignup: SQLBindParameter of user salt Failed" << std::endl;
         //listen_signup_or_login();
         reset();
         return;
     } 
+    length = SHA256_DIGEST_LENGTH;
     retcode = SQLBindParameter(hstmt, 3, SQL_PARAM_INPUT, SQL_C_BINARY,
-        SQL_BINARY, SHA256_DIGEST_LENGTH, 0, res, SHA256_DIGEST_LENGTH, NULL);
+        SQL_BINARY, SHA256_DIGEST_LENGTH, 0, res, SHA256_DIGEST_LENGTH, &length);
     if (!SQL_SUCCEEDED(retcode)) {
         std::cerr << "HandleSignup: SQLBindParameter of user pw Failed" << std::endl;
         //listen_signup_or_login();
@@ -215,7 +195,7 @@ void session::handle_login(transactionid_t tsid, const boost::system::error_code
     uint8_t *pw = salt + SHA256_DIGEST_LENGTH;
     uint8_t *res = pw + SHA256_DIGEST_LENGTH;
 
-    std::string stmt("SELECT salt FROM user WHERE userid = " + 
+    std::string stmt("SELECT salt, pw FROM user WHERE userid = " + 
         std::to_string(loginInfo->userid) + ';');
     if (odbc_exec(std::cerr, stmt.c_str())
     ) {
@@ -233,6 +213,15 @@ void session::handle_login(transactionid_t tsid, const boost::system::error_code
         return;
     }
     SHA256(loginInfo->pwsha256, 2 * SHA256_DIGEST_LENGTH, res);
+    dbgcout << "Given sha256 of password is: \n";
+    DbgPrintHex(loginInfo->pwsha256, SHA256_DIGEST_LENGTH);
+    dbgcout << "\nstored salt is: \n";
+    DbgPrintHex(salt, SHA256_DIGEST_LENGTH);
+    dbgcout << "\nsha256(pwsha256, salt) = \n";
+    DbgPrintHex(res, SHA256_DIGEST_LENGTH);
+    dbgcout << "\nThe stored result is: \n";
+    DbgPrintHex(pw, SHA256_DIGEST_LENGTH);
+    dbgcout << '\n';
     if (memcmp(pw, res, SHA256_DIGEST_LENGTH)) {
         dbgcout << "WRONG_PASSWORD\n";
         SendType(tsid, S2C::WRONG_PASSWORD);
@@ -275,11 +264,122 @@ void session::handle_request(const boost::system::error_code& error) {
     case C2S::LOGIN:
         SendType(header->tsid, S2C::ALREADY_LOGINED);
         break;
+    case C2S::USER_PUBLIC_INFO_REQ:
+        boost::asio::async_read(socket_,
+            boost::asio::buffer(buf_ + sizeof(C2SHeader), sizeof(userid_t)),
+            boost::bind(&session::HandleUserPublicInfoReq, this, boost::asio::placeholders::error));
+        break;
+    case C2S::ADD_FRIEND_REQ:
+        boost::asio::async_read(socket_,
+            boost::asio::buffer(buf_ + sizeof(C2SHeader), sizeof(C2SAddFriendReq)),
+            boost::bind(&session::HandleAddFriendReq, this, boost::asio::placeholders::error));
+        break;
+    case C2S::ADD_FRIEND_REPLY:
+        boost::asio::async_read(socket_,
+            boost::asio::buffer(buf_ + sizeof(C2SHeader), sizeof(C2SAddFriendReply)),
+            boost::bind(&session::HandleAddFriendReply, this, boost::asio::placeholders::error));
+        break;
     default:
         dbgcout << *(C2SBaseType*)buf_;
         listen_request();
         break;
     }
+}
+void session::HandleUserPublicInfoReq(const boost::system::error_code& error) {
+    HANDLE_ERROR;
+    S2CHeader *s2cHeader = reinterpret_cast<S2CHeader *>(buf_);
+    userid_t *id = reinterpret_cast<userid_t *>(s2cHeader + 1);
+    UserPublicInfoHeader *publicInfo = reinterpret_cast<UserPublicInfoHeader *>(id);
+    char *username = reinterpret_cast<char *>(publicInfo + 1);
+
+    if (odbc_exec(std::cerr, 
+        ("SELECT username FROM user WHERE userid = " + std::to_string(*id)).c_str()
+    )) {
+        reset();
+        return;
+    }
+    SQLLEN length;
+    SQLBindCol(hstmt, 1, SQL_C_CHAR, username, MAX_USERNAME_LEN, &length);
+    //TODO: Handle error case
+    if (SQL_NO_DATA == SQLFetch(hstmt)) {
+        SendType(S2C::NO_SUCH_USER);
+        listen_request();
+        return;
+    }
+    //s2cHeader->tsid is already in place
+    s2cHeader->type = S2C::USER_PUBLIC_INFO;
+    assert(SQL_NULL_DATA != length);
+    publicInfo->nameLen = length;
+    SendLater(buf_, sizeof(S2CHeader) + sizeof(UserPublicInfoHeader) + length);
+    listen_request();
+}
+void session::HandleAddFriendReq(const boost::system::error_code& error) {
+    HANDLE_ERROR;
+    C2SAddFriendReq *c2sAddFriendReq = reinterpret_cast<C2SAddFriendReq *>(buf_ + sizeof(C2SHeader));
+    //Check whether they are already friends
+    if (odbc_exec(std::cerr, ("SELECT user2 FROM friends WHERE user1 = " + std::to_string(userid) +
+        " and user2 = " + std::to_string(c2sAddFriendReq->to) + ';').c_str())
+    ) {
+        reset();
+        return;
+    }
+    if (SQL_NO_DATA != SQLFetch(hstmt)) {
+        SendType(S2C::ALREADY_FRIENDS);
+        listen_request();
+        return;
+    }
+    //TODO: write to db
+    SendType(S2C::ADD_FRIEND_SENT);
+    auto it = user_session.find(c2sAddFriendReq->to);
+    if (user_session.end() == it) {
+        dbgcout << __PRETTY_FUNCTION__ << ": user " << c2sAddFriendReq->to << " offline\n";
+        listen_request();
+        return;
+    }
+    struct S2CHeader *s2cHeader = reinterpret_cast<struct S2CHeader *>(buf_);
+    struct S2CAddFriendReqHeader *s2cAddFriendReq = reinterpret_cast<struct S2CAddFriendReqHeader *>(s2cHeader + 1);
+    char *username = reinterpret_cast<char *>(s2cAddFriendReq + 1);
+    s2cHeader->tsid = 0;    //push
+    s2cHeader->type = S2C::ADD_FRIEND_REQ;
+    s2cAddFriendReq->from = userid;
+    if (odbc_exec(std::cerr, ("SELECT username FROM user WHERE userid = " + std::to_string(userid) + ';').c_str())) {
+        reset();
+        return;
+    }
+    SQLLEN length;
+    SQLBindCol(hstmt, 1, SQL_C_BINARY, username, SHA256_DIGEST_LENGTH, &length);
+    s2cAddFriendReq->nameLen = length;
+    it->second->SendLater(buf_, sizeof(S2CAddFriendReqHeader) + s2cAddFriendReq->nameLen);
+    listen_request();
+}
+void session::HandleAddFriendReply(const boost::system::error_code& error) {
+    //TODO: read from db to make sure that there is such an add friend request
+    HANDLE_ERROR;
+    S2CHeader *s2cHeader = reinterpret_cast<S2CHeader *>(buf_);
+    C2SAddFriendReply *c2sAddFriendReply = reinterpret_cast<C2SAddFriendReply *>(s2cHeader + 1);
+    s2cHeader->tsid = 0;    //push
+    //s2cHeader->type = S2C::ADD_FRIEND_REPLY;  //already in place
+    userid_t to = c2sAddFriendReply->to;
+    S2CAddFriendReply *s2cAddFriendReply = reinterpret_cast<S2CAddFriendReply *>(c2sAddFriendReply);
+    s2cAddFriendReply->from = userid;
+    auto it = user_session.find(to);
+    if (user_session.end() == it) {
+        dbgcout << __PRETTY_FUNCTION__ << ": user " << c2sAddFriendReply->to << " offline\n";
+        listen_request();
+        return;
+    }
+    it->second->SendLater(buf_, sizeof(S2CHeader) + sizeof(S2CAddFriendReply));
+    if (s2cAddFriendReply->reply) {
+        //They becomes friends.
+        if (odbc_exec(std::cerr, ("INSERT INTO friends VALUES(" + 
+            std::to_string(userid) + ',' + std::to_string(to) + "),(" + 
+            std::to_string(to) + ',' + std::to_string(userid) + ");").c_str())
+        ) {
+            reset();
+            return;
+        }
+    }
+    listen_request();
 }
 void session::handle_msg(const boost::system::error_code& error) {
     static_assert(sizeof(C2SHeader) + sizeof(MsgS2CHeader) + MAX_CONTENT_LEN <= BUFSIZE);
@@ -374,4 +474,8 @@ void session::reset() {
     user_session.erase(userid);
     delete this;
     dbgcout << "Disconnected\n";
+}
+void session::handle_sslio_error(const boost::system::error_code& error) {
+    SslIO::handle_sslio_error(error);
+    reset();
 }

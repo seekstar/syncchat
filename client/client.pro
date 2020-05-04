@@ -33,7 +33,9 @@ SOURCES += ../src/*\
     dialogreconnect.cpp \
     mainmanager.cpp \
     sslmanager.cpp \
-    myglobal.cpp
+    myglobal.cpp \
+    pushbuf.cpp \
+    dialogaddfriend.cpp
 
 HEADERS  += ../include/*\
     mainwindow.h \
@@ -43,12 +45,15 @@ HEADERS  += ../include/*\
     dialogreconnect.h \
     mainmanager.h \
     sslmanager.h \
-    myglobal.h
+    myglobal.h \
+    pushbuf.h \
+    dialogaddfriend.h
 
 FORMS    += mainwindow.ui \
     winlogin.ui \
     dialogsignup.ui \
-    dialogreconnect.ui
+    dialogreconnect.ui \
+    dialogaddfriend.ui
 
 win32 {
     DEFINES  -= UNICODE

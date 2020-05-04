@@ -25,7 +25,8 @@ public:
 		if (odbc_connect(err, dataSource, NULL, NULL)) {
 			throw std::runtime_error("odbc_login: " + err.str());
 		}
-		SQLExecDirect(hstmt, (SQLCHAR*)"USE wechat;", SQL_NTS);
+		odbc_exec(std::cerr, "USE wechat;");
+		//SQLExecDirect(hstmt, (SQLCHAR*)"USE wechat;", SQL_NTS);
 		context_.set_options(
 			boost::asio::ssl::context::default_workarounds | boost::asio::ssl::context::no_sslv2
 			 | boost::asio::ssl::context::single_dh_use);

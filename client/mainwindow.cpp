@@ -13,10 +13,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-}
-
-void MainWindow::resetSock(ssl_socket *sock) {
-    socket_ = sock;
+    connect(ui->actionAddFriend, &QAction::triggered, this, &MainWindow::AddFriend);
 }
 
 MainWindow::~MainWindow()
