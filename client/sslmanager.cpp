@@ -186,11 +186,6 @@ void SslManager::HandleS2CHeader(const boost::system::error_code& error) {
     struct S2CHeader *s2cHeader = reinterpret_cast<struct S2CHeader *>(recvbuf_);
     if (0 == s2cHeader->tsid) {
         switch (s2cHeader->type) {
-        case S2C::USER_PUBLIC_INFO:
-            boost::asio::async_read(*socket_,
-                boost::asio::buffer(recvbuf_ + sizeof(S2CHeader), sizeof(UserPublicInfoHeader)),
-                boost::bind(&SslManager::HandleUserPublicInfoHeader, this, boost::asio::placeholders::error));
-            break;
         case S2C::ADD_FRIEND_REQ:
             boost::asio::async_read(*socket_,
                 boost::asio::buffer(recvbuf_, sizeof(S2CAddFriendReqHeader)),
@@ -218,6 +213,11 @@ void SslManager::HandleS2CHeader(const boost::system::error_code& error) {
             break;
         case C2S::LOGIN:
             HandleLoginReply();
+            break;
+        case C2S::USER_PUBLIC_INFO_REQ:
+            boost::asio::async_read(*socket_,
+                boost::asio::buffer(recvbuf_ + sizeof(S2CHeader), sizeof(UserPublicInfoHeader)),
+                boost::bind(&SslManager::HandleUserPublicInfoHeader, this, boost::asio::placeholders::error));
             break;
         case C2S::ADD_FRIEND_REQ:
             HandleAddFriendResponse();

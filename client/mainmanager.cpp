@@ -88,27 +88,31 @@ void MainManager::HandleAddFriendReq(userid_t userid, std::__cxx11::string usern
         exec_sql("INSERT INTO friends(userid, username) VALUES(" +
                  std::to_string(userid) + ",\"" + escape(username) + "\");", true);
         usernames[userid] = username;
+        mainWindow.NewFriend(userid, username);
     }
     emit replyAddFriend(userid, reply);
 }
 
 void MainManager::HandleAddFriendReply(userid_t userid, bool reply) {
-    if (reply) {
-        QMessageBox::information(NULL, "提示", "您与" + QString(std::to_string(userid).c_str()) + "成为好友了");
-    } else {
+    if (!reply) {
         QMessageBox::information(NULL, "提示", "用户" + QString(std::to_string(userid).c_str()) + "拒绝了您的好友申请");
+        return;
     }
     auto it = usernames.find(userid);
     if (usernames.end() == it) {
         emit UserPublicInfoReq(userid);
         exec_sql("INSERT INTO friends(userid) VALUES(" + std::to_string(userid) + ");", true);
+        mainWindow.NewFriend(userid, "");
     } else {
         exec_sql("INSERT INTO friends(userid, username) VALUES(" +
                  std::to_string(userid) + ",\"" + escape(it->second) + "\");", true);
+        mainWindow.NewFriend(userid, it->second);
     }
+    QMessageBox::information(NULL, "提示", "您与" + QString(std::to_string(userid).c_str()) + "成为好友了");
 }
 void MainManager::HandleUserPublicInfoReply(userid_t userid, std::string username) {
     exec_sql("UPDATE friends SET username = \"" + escape(username) + "\" WHERE userid = " + std::to_string(userid) + ';', true);
     usernames[userid] = username;
     qDebug() << "userid = " << userid << ", username = " << username.c_str();
+    mainWindow.UpdateUsername(userid, username);
 }

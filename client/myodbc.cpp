@@ -49,9 +49,9 @@ bool exec_sql(const std::string& stmt, bool critical) {
         if (critical) {
             qDebug() << "ERROR!";
             QMessageBox::critical(NULL, "Execute error!", QString(err.str().c_str()));
-        } else {
+        }/* else {
             qDebug() << "Uncritical execute error:" << err.str().c_str();
-        }
+        }*/
         return true;
     }
     return false;
