@@ -212,6 +212,10 @@ void session::handle_login(transactionid_t tsid, const boost::system::error_code
         listen_signup_or_login();
         return;
     }
+    if (odbc_close_cursor(std::cerr)) {
+        reset();
+        return;
+    }
     SHA256(loginInfo->pwsha256, 2 * SHA256_DIGEST_LENGTH, res);
     dbgcout << "Given sha256 of password is: \n";
     DbgPrintHex(loginInfo->pwsha256, SHA256_DIGEST_LENGTH);
@@ -229,9 +233,10 @@ void session::handle_login(transactionid_t tsid, const boost::system::error_code
         return;
     }
     dbgcout << "LOGIN_OK\n";
-    SendType(tsid, S2C::LOGIN_OK);
     userid = loginInfo->userid;
     user_session[userid] = this;
+    dbgcout << "user " << userid << " online now\n";
+    SendType(tsid, S2C::LOGIN_OK);
     listen_request();
 }
 
@@ -286,6 +291,7 @@ void session::handle_request(const boost::system::error_code& error) {
     }
 }
 void session::HandleUserPublicInfoReq(const boost::system::error_code& error) {
+    dbgcout << __PRETTY_FUNCTION__ << '\n';
     HANDLE_ERROR;
     S2CHeader *s2cHeader = reinterpret_cast<S2CHeader *>(buf_);
     userid_t *id = reinterpret_cast<userid_t *>(s2cHeader + 1);
@@ -306,6 +312,10 @@ void session::HandleUserPublicInfoReq(const boost::system::error_code& error) {
         listen_request();
         return;
     }
+    if (odbc_close_cursor(std::cerr)) {
+        reset();
+        return;
+    }
     //s2cHeader->tsid is already in place
     s2cHeader->type = S2C::USER_PUBLIC_INFO;
     assert(SQL_NULL_DATA != length);
@@ -314,6 +324,7 @@ void session::HandleUserPublicInfoReq(const boost::system::error_code& error) {
     listen_request();
 }
 void session::HandleAddFriendReq(const boost::system::error_code& error) {
+    dbgcout << __PRETTY_FUNCTION__ << '\n';
     HANDLE_ERROR;
     C2SAddFriendReq *c2sAddFriendReq = reinterpret_cast<C2SAddFriendReq *>(buf_ + sizeof(C2SHeader));
     //Check whether they are already friends
@@ -324,18 +335,23 @@ void session::HandleAddFriendReq(const boost::system::error_code& error) {
         return;
     }
     if (SQL_NO_DATA != SQLFetch(hstmt)) {
+        if (odbc_close_cursor(std::cerr)) {
+            reset();
+            return;
+        }
+        dbgcout << "ALREADY_FRIENDS\n";
         SendType(S2C::ALREADY_FRIENDS);
         listen_request();
         return;
     }
     //TODO: write to db
-    SendType(S2C::ADD_FRIEND_SENT);
     auto it = user_session.find(c2sAddFriendReq->to);
     if (user_session.end() == it) {
         dbgcout << __PRETTY_FUNCTION__ << ": user " << c2sAddFriendReq->to << " offline\n";
         listen_request();
         return;
     }
+    SendType(S2C::ADD_FRIEND_SENT); //In fact send it later
     struct S2CHeader *s2cHeader = reinterpret_cast<struct S2CHeader *>(buf_);
     struct S2CAddFriendReqHeader *s2cAddFriendReq = reinterpret_cast<struct S2CAddFriendReqHeader *>(s2cHeader + 1);
     char *username = reinterpret_cast<char *>(s2cAddFriendReq + 1);
@@ -348,17 +364,30 @@ void session::HandleAddFriendReq(const boost::system::error_code& error) {
     }
     SQLLEN length;
     SQLBindCol(hstmt, 1, SQL_C_BINARY, username, SHA256_DIGEST_LENGTH, &length);
+    if (SQL_NO_DATA == SQLFetch(hstmt)) {
+        std::cerr << "Unexpected no such a user\n";
+        reset();
+        return;
+    }
+    assert(SQL_NULL_DATA != length);
+    if (odbc_close_cursor(std::cerr)) {
+        reset();
+        return;
+    }
+    //dbgcout << "username of the target user is " << std::string(username, length) << '\n';
+    //dbgcout << "Length of username of the target user is " << length << '\n';
     s2cAddFriendReq->nameLen = length;
-    it->second->SendLater(buf_, sizeof(S2CAddFriendReqHeader) + s2cAddFriendReq->nameLen);
+    it->second->SendLater(buf_, sizeof(S2CHeader) + sizeof(S2CAddFriendReqHeader) + length);
     listen_request();
 }
 void session::HandleAddFriendReply(const boost::system::error_code& error) {
+    dbgcout << __PRETTY_FUNCTION__ << '\n';
     //TODO: read from db to make sure that there is such an add friend request
     HANDLE_ERROR;
     S2CHeader *s2cHeader = reinterpret_cast<S2CHeader *>(buf_);
     C2SAddFriendReply *c2sAddFriendReply = reinterpret_cast<C2SAddFriendReply *>(s2cHeader + 1);
     s2cHeader->tsid = 0;    //push
-    //s2cHeader->type = S2C::ADD_FRIEND_REPLY;  //already in place
+    s2cHeader->type = S2C::ADD_FRIEND_REPLY;
     userid_t to = c2sAddFriendReply->to;
     S2CAddFriendReply *s2cAddFriendReply = reinterpret_cast<S2CAddFriendReply *>(c2sAddFriendReply);
     s2cAddFriendReply->from = userid;

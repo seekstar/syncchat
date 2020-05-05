@@ -2,9 +2,5 @@
 
 mkdir -p build
 cd build
-cmake ..
-make all
-mv server ../demo
-cd ../demo
-./server 5188
+cmake .. && make all && mv server ../demo && cd ../demo && ./server 5188
 

@@ -21,11 +21,14 @@ public:
     ~MainManager();
 
 signals:
+    void replyAddFriend(userid_t userid, bool reply);
     void UserPublicInfoReq(userid_t);
 
 public slots:
 
 private slots:
+    void HandleLoginDone(userid_t userid);
+    void HandleAddFriendReq(userid_t userid, std::string username);
     void HandleAddFriendReply(userid_t userid, bool reply);
     void HandleUserPublicInfoReply(userid_t userid, std::string username);
 
@@ -38,6 +41,7 @@ private:
     MainWindow mainWindow;
     DialogAddFriend dialogAddFriend;
 
+    userid_t myid;
     std::unordered_map<userid_t, std::string> usernames;
 };
 

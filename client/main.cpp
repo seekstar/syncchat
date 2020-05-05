@@ -11,6 +11,7 @@ int main(int argc, char *argv[])
     qRegisterMetaType<std::string>("std::string");
     qRegisterMetaType<std::vector<uint8_t> >("std::vector<uint8_t>");
     qRegisterMetaType<LoginInfo>("LoginInfo");
+    qRegisterMetaType<userid_t>("userid_t");
     MainManager mainManager("127.0.0.1", "5188");
     //io_service.run();
 

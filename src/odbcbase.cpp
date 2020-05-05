@@ -142,20 +142,37 @@ bool odbc_free_all(std::ostream& err) {
     return fail;
 }
 
+void odbc_get_errmsg(std::ostream& err) {
+    SQLINTEGER errnative;
+    UCHAR errmsg[255];
+    SQLSMALLINT errmsglen;
+    UCHAR errstate[5];
+    SQLGetDiagRec(SQL_HANDLE_STMT, hstmt,
+            1, errstate,
+            &errnative, errmsg, sizeof(errmsg), &errmsglen);
+    err << "errstate: " << errstate << "\nerrnative: " << errnative << "\nerrmsg: " << errmsg << '\n';
+}
 bool odbc_exec(std::ostream& err, const char *stmt) {
     SQLRETURN ret = SQLExecDirect(hstmt, (SQLCHAR*)(stmt), SQL_NTS);
-    bool fail = (ret != SQL_SUCCESS && ret != SQL_SUCCESS_WITH_INFO);
+    //bool fail = (ret != SQL_SUCCESS && ret != SQL_SUCCESS_WITH_INFO);
+    bool fail = !SQL_SUCCEEDED(ret);
     if (fail) {
-        SQLINTEGER errnative;
-        UCHAR errmsg[255];
-        SQLSMALLINT errmsglen;
-        UCHAR errstate[5];
-        SQLGetDiagRec(SQL_HANDLE_STMT, hstmt,
-               1, errstate,
-               &errnative, errmsg, sizeof(errmsg), &errmsglen);
-        err << "Error when executing: " << stmt << "\nerrstate: " << errstate << "\nerrnative: " << errnative << "\nerrmsg: " << errmsg;
+        err << "Error when executing: " << stmt << "\n";
+        odbc_get_errmsg(err);
     } else {
         dbgcout << stmt << '\n';
+    }
+    return fail;
+}
+
+bool odbc_close_cursor(std::ostream& err) {
+    SQLRETURN ret = SQLCloseCursor(hstmt);
+    bool fail = !SQL_SUCCEEDED(ret);
+    if (fail) {
+        err << "Error in " << __PRETTY_FUNCTION__ << ": ";
+        odbc_get_errmsg(err);
+    } else {
+        dbgcout << "odbc cursor closed\n";
     }
     return fail;
 }

@@ -32,12 +32,12 @@ signals:
     void phoneTooLong();
     void signupDone(userid_t userid);
     void wrongPassword();
-    void loginDone();
+    void loginDone(userid_t userid);
     void UserPublicInfoReply(userid_t userid, std::string username);
     void alreadyFriends();
     void addFriendSent();
-    void addFriendReply(userid_t userid, bool reply);
     void addFriendReq(userid_t userid, std::string username);
+    void addFriendReply(userid_t userid, bool reply);
 
 public slots:
     void sslconn();
@@ -46,6 +46,7 @@ public slots:
     void login(struct LoginInfo loginInfo);
     void UserPublicInfoReq(userid_t userid);
     void AddFriend(userid_t userid);
+    void ReplyAddFriend(userid_t userid, bool reply);
 
 private:
     //void run_io_service();
@@ -64,9 +65,11 @@ private:
     void HandleSignupReply();
     void HandleSignupReply2(const boost::system::error_code& error);
     void HandleLoginReply();
-    void HandleUserPublicInfo();
+    void HandleUserPublicInfoHeader(const boost::system::error_code& error);
+    void HandleUserPublicInfoContent(const boost::system::error_code& error);
     void HandleAddFriendResponse();
-    //void HandleAddFriendReply();
+    void HandleAddFriendReqHeader(const boost::system::error_code& error);
+    void HandleAddFriendReqContent(const boost::system::error_code& error);
     void HandleAddFriendReply(const boost::system::error_code& error);
 
     io_service_t io_service;
@@ -78,7 +81,10 @@ private:
     context_t *context;
     ssl_socket *socket_;
     constexpr static size_t RECVBUFSIZE = std::max({
-        sizeof(S2CHeader), sizeof(SignupReply)
+        sizeof(SignupReply),
+        sizeof(S2CHeader) + sizeof(UserPublicInfoHeader) + MAX_USERNAME_LEN,
+        sizeof(S2CAddFriendReqHeader) + MAX_USERNAME_LEN,
+        sizeof(S2CAddFriendReply)
     });
     uint8_t recvbuf_[RECVBUFSIZE];
     bool busy;
@@ -88,6 +94,8 @@ private:
     std::unordered_map<transactionid_t, C2S> transactionType_;
 //    transactionid_t lastSignupTransaction_;
 //    transactionid_t lastLoginTransaction_;
+    typedef std::unordered_map<transactionid_t, userid_t> TransactionUserMap;
+    TransactionUserMap transactionUser_;
 };
 
 #endif // SSLMANAGER_H

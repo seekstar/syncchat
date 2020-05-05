@@ -7,9 +7,9 @@
 
 #include "odbcbase.h"
 
-bool myodbcLogin(void) {
+bool myodbcLogin(const char *connStr) {
     std::ostringstream err;
-    if (odbc_driver_connect(err, "Driver=SQLite3;Database=syncchatclient.db")) {
+    if (odbc_driver_connect(err, connStr)) {
         QMessageBox::critical(NULL, "Can not open syncchatclient.db", err.str().c_str());
         return true;
     }

@@ -9,24 +9,27 @@
 #include "odbcbase.h"
 #include "cppbase.h"
 
+#include "mydb.h"
 #include "session.h"
 //#include "sender.h"
 
 class server
 {
 public:
-	server(boost::asio::io_service &io_service, unsigned short portReq, const char *dataSource)
+	server(boost::asio::io_service &io_service, unsigned short portReq)
 		: io_service_(io_service),
 		  acceptor_(io_service,
 					boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), portReq)),
 		  context_(boost::asio::ssl::context::sslv23)
 	{
 		std::ostringstream err;
-		if (odbc_connect(err, dataSource, NULL, NULL)) {
+		if (odbc_connect(err, "wechatserver", NULL, NULL)) {
 			throw std::runtime_error("odbc_login: " + err.str());
 		}
-		odbc_exec(std::cerr, "USE wechat;");
-		//SQLExecDirect(hstmt, (SQLCHAR*)"USE wechat;", SQL_NTS);
+		// if (odbc_driver_connect(err, "Driver=SQLite3;Database=syncchatserver.db")) {
+		// 	throw std::runtime_error("odbc_driver_connect: " + err.str());
+		// }
+		InitDB(dbgcout);
 		context_.set_options(
 			boost::asio::ssl::context::default_workarounds | boost::asio::ssl::context::no_sslv2
 			 | boost::asio::ssl::context::single_dh_use);
@@ -79,7 +82,7 @@ int main(int argc, char *argv[])
 
 		boost::asio::io_service io_service;
 		int port = atoi(argv[1]);
-		server s(io_service, port, "wechatserver");
+		server s(io_service, port);
 		std::cerr << "Listening at port " << port << std::endl;
 		//std::cout << "Listening at port " << port << std::endl;
 		io_service.run();

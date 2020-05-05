@@ -22,4 +22,9 @@ extern _emptycout emptycout;
 
 void DbgPrintHex(void *data, size_t len);
 
+#ifndef __PRETTY_FUNCTION__
+#define __PRETTY_FUNCTION__ __FUNCTION__
+//#pragma GCC warning "no predefinition of __PRETTY_FUNCTION__, define it as __FUNCTION__"
+#endif
+
 #endif //CPPBASE_H_

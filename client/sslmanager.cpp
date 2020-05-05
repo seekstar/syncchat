@@ -23,10 +23,10 @@ SslManager::SslManager(const char *ip, const char *port)
     moveToThread(this);
     //setParent(parent);
     connect(&timer, &QTimer::timeout, [&] {
-        qDebug() << "poll";
+        //qDebug() << "poll";
         io_service.poll();
     });
-    timer.start(1000);
+    timer.start(100);
 }
 
 SslManager::~SslManager() {
@@ -105,7 +105,9 @@ std::vector<uint8_t> SslManager::C2SHeaderBuf(C2S type) {
     std::vector<uint8_t> buf(sizeof(C2SHeader));
     struct C2SHeader *c2sHeader = reinterpret_cast<struct C2SHeader *>(buf.data());
     c2sHeader->tsid = ++last_tsid;
-    transactionType_[last_tsid] = C2S::SIGNUP;
+    c2sHeader->type = type;
+    transactionType_[last_tsid] = type;
+    return buf;
 }
 
 void SslManager::handle_handshake(const boost::system::error_code& error)
@@ -186,10 +188,18 @@ void SslManager::HandleS2CHeader(const boost::system::error_code& error) {
         switch (s2cHeader->type) {
         case S2C::USER_PUBLIC_INFO:
             boost::asio::async_read(*socket_,
-                boost::buffer(recvbuf_, sizeof()));
+                boost::asio::buffer(recvbuf_ + sizeof(S2CHeader), sizeof(UserPublicInfoHeader)),
+                boost::bind(&SslManager::HandleUserPublicInfoHeader, this, boost::asio::placeholders::error));
+            break;
+        case S2C::ADD_FRIEND_REQ:
+            boost::asio::async_read(*socket_,
+                boost::asio::buffer(recvbuf_, sizeof(S2CAddFriendReqHeader)),
+                boost::bind(&SslManager::HandleAddFriendReqHeader, this, boost::asio::placeholders::error));
             break;
         case S2C::ADD_FRIEND_REPLY:
-            ReadAddFriendReply();
+            boost::asio::async_read(*socket_,
+                boost::asio::buffer(recvbuf_, sizeof(S2CAddFriendReply)),
+                boost::bind(&SslManager::HandleAddFriendReply, this, boost::asio::placeholders::error));
             break;
         default:
             qWarning() << "Unexpected type in " << __PRETTY_FUNCTION__ << ": " << (S2CBaseType)s2cHeader->type;
@@ -260,9 +270,11 @@ void SslManager::login(struct LoginInfo loginInfo) {
     auto buf = C2SHeaderBuf(C2S::LOGIN);
     PushBuf(buf, &loginInfo, sizeof(loginInfo));
     SendLater(buf.data(), buf.size());
+    transactionUser_[*reinterpret_cast<transactionid_t*>(buf.data())] = loginInfo.userid;
 }
 void SslManager::HandleLoginReply() {
     struct S2CHeader *s2cHeader = reinterpret_cast<struct S2CHeader *>(recvbuf_);
+    TransactionUserMap::iterator it;
     switch (s2cHeader->type) {
     case S2C::ALREADY_LOGINED:
         //qDebug() << "Warning: ALREADY_LOGINED";
@@ -272,7 +284,13 @@ void SslManager::HandleLoginReply() {
         emit wrongPassword();
         break;
     case S2C::LOGIN_OK:
-        emit loginDone();
+        it = transactionUser_.find(s2cHeader->tsid);
+        if (transactionUser_.end() == it) {
+            qDebug() << "Error in " << __PRETTY_FUNCTION__ << ": Transaction id doesn't have corresponding user id";
+            break;
+        }
+        emit loginDone(it->second);
+        transactionUser_.erase(it);
         break;
     default:
         qWarning() << "Unexpected type in " << __PRETTY_FUNCTION__ << ": " << (S2CBaseType)s2cHeader->type;
@@ -281,13 +299,33 @@ void SslManager::HandleLoginReply() {
     ListenToServer();
 }
 
-void UserPublicInfoReq(userid_t userid) {
+void SslManager::UserPublicInfoReq(userid_t userid) {
     auto buf = C2SHeaderBuf(C2S::USER_PUBLIC_INFO_REQ);
     PushBuf(buf, &userid, sizeof(userid));
     SendLater(buf.data(), buf.size());
+    transactionUser_[last_tsid] = userid;
 }
-void SslManager::HandleUserPublicInfo() {
-
+void SslManager::HandleUserPublicInfoHeader(const boost::system::error_code& error) {
+    HANDLE_ERROR;
+    auto s2cHeader = reinterpret_cast<S2CHeader*>(recvbuf_);
+    auto userPublicInfoHeader = reinterpret_cast<UserPublicInfoHeader *>(s2cHeader + 1);
+    boost::asio::async_read(*socket_,
+        boost::asio::buffer(recvbuf_ + sizeof(S2CHeader) + sizeof(UserPublicInfoHeader), userPublicInfoHeader->nameLen),
+        boost::bind(&SslManager::HandleUserPublicInfoContent, this, boost::asio::placeholders::error));
+}
+void SslManager::HandleUserPublicInfoContent(const boost::system::error_code& error) {
+    HANDLE_ERROR;
+    auto s2cHeader = reinterpret_cast<S2CHeader*>(recvbuf_);
+    auto userPublicInfoHeader = reinterpret_cast<UserPublicInfoHeader *>(s2cHeader + 1);
+    char *username = reinterpret_cast<char *>(userPublicInfoHeader + 1);
+    auto it = transactionUser_.find(s2cHeader->tsid);
+    if (transactionUser_.end() == it) {
+        qWarning() << "Warning in" << __PRETTY_FUNCTION__ << ": Received a transaction id which do not correspond to a query";
+    } else {
+        emit UserPublicInfoReply(it->second, std::string(username, userPublicInfoHeader->nameLen));
+        transactionUser_.erase(it);
+    }
+    ListenToServer();
 }
 
 void SslManager::AddFriend(userid_t userid) {
@@ -311,11 +349,33 @@ void SslManager::HandleAddFriendResponse() {
     ListenToServer();
 }
 
-void SslManager::ReadAddFriendReply() {
+void SslManager::HandleAddFriendReqHeader(const boost::system::error_code& error) {
+    qDebug() << __PRETTY_FUNCTION__;
+    HANDLE_ERROR;
+    auto s2cAddFriendReqHeader = reinterpret_cast<S2CAddFriendReqHeader *>(recvbuf_);
+    qDebug() << "The length of username is " << s2cAddFriendReqHeader->nameLen;
     boost::asio::async_read(*socket_,
-        boost::asio::buffer(recvbuf_, sizeof(S2CAddFriendReply)),
-        boost::bind(&SslManager::HandleAddFriendReply, this, boost::asio::placeholders::error));
+        boost::asio::buffer(s2cAddFriendReqHeader + 1, s2cAddFriendReqHeader->nameLen),
+        boost::bind(&SslManager::HandleAddFriendReqContent, this, boost::asio::placeholders::error));
 }
+void SslManager::HandleAddFriendReqContent(const boost::system::error_code& error) {
+    qDebug() << __PRETTY_FUNCTION__;
+    HANDLE_ERROR;
+    auto s2cAddFriendReqHeader = reinterpret_cast<S2CAddFriendReqHeader *>(recvbuf_);
+    char *username = reinterpret_cast<char *>(s2cAddFriendReqHeader + 1);
+    emit addFriendReq(s2cAddFriendReqHeader->from, std::string(username, s2cAddFriendReqHeader->nameLen));
+    ListenToServer();
+}
+
+void SslManager::ReplyAddFriend(userid_t userid, bool reply) {
+    auto buf = C2SHeaderBuf(C2S::ADD_FRIEND_REPLY);
+    struct C2SAddFriendReply c2sAddFriendReply;
+    c2sAddFriendReply.to = userid;
+    c2sAddFriendReply.reply = reply;
+    PushBuf(buf, &c2sAddFriendReply, sizeof(c2sAddFriendReply));
+    SendLater(buf.data(), buf.size());
+}
+
 void SslManager::HandleAddFriendReply(const boost::system::error_code& error) {
     HANDLE_ERROR;
     struct S2CAddFriendReply *s2cAddFriendReply = reinterpret_cast<struct S2CAddFriendReply *>(recvbuf_);

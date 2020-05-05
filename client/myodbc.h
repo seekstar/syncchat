@@ -3,7 +3,7 @@
 
 #include <string>
 
-bool myodbcLogin(void);
+bool myodbcLogin(const char *connStr);
 bool myodbcLogout(void);
 bool exec_sql(const std::string& stmt, bool critical);
 

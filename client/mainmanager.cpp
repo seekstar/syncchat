@@ -8,10 +8,9 @@
 
 MainManager::MainManager(const char *ip, const char *port, QObject *parent)
     : QObject(parent),
-      sslManager(ip, port)
+      sslManager(ip, port),
+      myid(0)
 {
-    myodbcLogin();
-
     qDebug() << "The thread id of the main thread is " << QThread::currentThreadId();
     //sslManager
     connect(&sslManager, &SslManager::loginFirst, [this] {
@@ -47,11 +46,12 @@ MainManager::MainManager(const char *ip, const char *port, QObject *parent)
     connect(&sslManager, &SslManager::signupDone, &dialogSignup, &DialogSignup::signupRes);
     //winLogin
     connect(&winLogin, &WinLogin::login, &sslManager, &SslManager::login);
-    connect(&sslManager, &SslManager::loginDone, &winLogin, &WinLogin::close);
+    connect(&sslManager, &SslManager::loginDone, this, &MainManager::HandleLoginDone);
     //dialogAddFriend
-    connect(&sslManager, &SslManager::loginDone, &mainWindow, &MainWindow::show);
     connect(&mainWindow, &MainWindow::AddFriend, &dialogAddFriend, &DialogAddFriend::show);
     connect(&dialogAddFriend, &DialogAddFriend::AddFriend, &sslManager, &SslManager::AddFriend);
+    connect(&sslManager, &SslManager::addFriendReq, this, &MainManager::HandleAddFriendReq);
+    connect(this, &MainManager::replyAddFriend, &sslManager, &SslManager::ReplyAddFriend);
     connect(&sslManager, &SslManager::addFriendReply, this, &MainManager::HandleAddFriendReply);
     connect(this, &MainManager::UserPublicInfoReq, &sslManager, &SslManager::UserPublicInfoReq);
     connect(&sslManager, &SslManager::UserPublicInfoReply, this, &MainManager::HandleUserPublicInfoReply);
@@ -65,6 +65,31 @@ MainManager::~MainManager() {
     //sslManager.stop_io_service();
     sslManager.quit();
     sslManager.wait();
+}
+
+void MainManager::HandleLoginDone(userid_t userid) {
+    if (myid) {
+        qDebug() << "Duplicate login done: " << userid;
+        return;
+    }
+    myid = userid;
+    winLogin.close();
+    myodbcLogin(("Driver=SQLite3;Database=syncchatclient" + std::to_string(myid) + ".db").c_str());
+    mainWindow.setWindowTitle(QString(std::to_string(myid).c_str()));
+    mainWindow.show();
+}
+
+void MainManager::HandleAddFriendReq(userid_t userid, std::__cxx11::string username) {
+    std::string msg = "账号为" + std::to_string(userid) + "\n昵称为" + username + "\n同意吗？";
+    bool reply = (QMessageBox::Yes == QMessageBox::question(
+        NULL, "加好友请求", QString(msg.c_str()), QMessageBox::Yes | QMessageBox::No
+    ));
+    if (reply) {
+        exec_sql("INSERT INTO friends(userid, username) VALUES(" +
+                 std::to_string(userid) + ",\"" + escape(username) + "\");", true);
+        usernames[userid] = username;
+    }
+    emit replyAddFriend(userid, reply);
 }
 
 void MainManager::HandleAddFriendReply(userid_t userid, bool reply) {
