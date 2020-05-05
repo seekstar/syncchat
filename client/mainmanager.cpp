@@ -74,9 +74,26 @@ void MainManager::HandleLoginDone(userid_t userid) {
     }
     myid = userid;
     winLogin.close();
-    myodbcLogin(("Driver=SQLite3;Database=syncchatclient" + std::to_string(myid) + ".db").c_str());
     mainWindow.setWindowTitle(QString(std::to_string(myid).c_str()));
     mainWindow.show();
+    myodbcLogin(("Driver=SQLite3;Database=syncchatclient" + std::to_string(myid) + ".db").c_str());
+    if (exec_sql("SELECT userid, username FROM friends;", true)) {
+        return;
+    }
+    SQLLEN idLen, nameLen;
+    char username[MAX_USERNAME_LEN];
+    SQLBindCol(hstmt, 1, SQL_C_UBIGINT, &userid, sizeof(userid), &idLen);
+    SQLBindCol(hstmt, 2, SQL_C_CHAR, username, sizeof(username), &nameLen);
+    while (SQL_NO_DATA != SQLFetch(hstmt)) {
+        assert(SQL_NULL_DATA != idLen);
+        std::string displayName;
+        if (SQL_NULL_DATA == nameLen) {
+            displayName = std::to_string(userid);
+        } else {
+            displayName = std::string(username, nameLen);
+        }
+        mainWindow.NewFriend(userid, displayName);
+    }
 }
 
 void MainManager::HandleAddFriendReq(userid_t userid, std::__cxx11::string username) {
@@ -102,7 +119,7 @@ void MainManager::HandleAddFriendReply(userid_t userid, bool reply) {
     if (usernames.end() == it) {
         emit UserPublicInfoReq(userid);
         exec_sql("INSERT INTO friends(userid) VALUES(" + std::to_string(userid) + ");", true);
-        mainWindow.NewFriend(userid, "");
+        mainWindow.NewFriend(userid, std::to_string(userid));
     } else {
         exec_sql("INSERT INTO friends(userid, username) VALUES(" +
                  std::to_string(userid) + ",\"" + escape(it->second) + "\");", true);
