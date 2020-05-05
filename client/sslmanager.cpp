@@ -101,6 +101,12 @@ void SslManager::handle_send(const boost::system::error_code& error) {
         StartSend();
     }
 }
+std::vector<uint8_t> SslManager::C2SHeaderBuf(C2S type) {
+    std::vector<uint8_t> buf(sizeof(C2SHeader));
+    struct C2SHeader *c2sHeader = reinterpret_cast<struct C2SHeader *>(buf.data());
+    c2sHeader->tsid = ++last_tsid;
+    transactionType_[last_tsid] = C2S::SIGNUP;
+}
 
 void SslManager::handle_handshake(const boost::system::error_code& error)
 {
@@ -178,6 +184,10 @@ void SslManager::HandleS2CHeader(const boost::system::error_code& error) {
     struct S2CHeader *s2cHeader = reinterpret_cast<struct S2CHeader *>(recvbuf_);
     if (0 == s2cHeader->tsid) {
         switch (s2cHeader->type) {
+        case S2C::USER_PUBLIC_INFO:
+            boost::asio::async_read(*socket_,
+                boost::buffer(recvbuf_, sizeof()));
+            break;
         case S2C::ADD_FRIEND_REPLY:
             ReadAddFriendReply();
             break;
@@ -212,14 +222,9 @@ void SslManager::HandleS2CHeader(const boost::system::error_code& error) {
 
 void SslManager::signup(std::vector<uint8_t> content) {
     qDebug() << __PRETTY_FUNCTION__;
-    std::vector<uint8_t> buf;
-    struct C2SHeader c2sHeader;
-    c2sHeader.tsid = ++last_tsid;
-    c2sHeader.type = C2S::SIGNUP;
-    PushBuf(buf, &c2sHeader, sizeof(c2sHeader));
+    auto buf = C2SHeaderBuf(C2S::SIGNUP);
     PushBuf(buf, content.data(), content.size());
     SendLater(buf.data(), buf.size());
-    transactionType_[last_tsid] = C2S::SIGNUP;
 }
 void SslManager::HandleSignupReply() {
     struct S2CHeader *s2cHeader = reinterpret_cast<struct S2CHeader *>(recvbuf_);
@@ -252,14 +257,9 @@ void SslManager::HandleSignupReply2(const boost::system::error_code& error) {
 
 void SslManager::login(struct LoginInfo loginInfo) {
     qDebug() << __PRETTY_FUNCTION__;
-    std::vector<uint8_t> buf;
-    struct C2SHeader c2sHeader;
-    c2sHeader.tsid = ++last_tsid;
-    c2sHeader.type = C2S::LOGIN;
-    PushBuf(buf, &c2sHeader, sizeof(c2sHeader));
+    auto buf = C2SHeaderBuf(C2S::LOGIN);
     PushBuf(buf, &loginInfo, sizeof(loginInfo));
     SendLater(buf.data(), buf.size());
-    transactionType_[last_tsid] = C2S::LOGIN;
 }
 void SslManager::HandleLoginReply() {
     struct S2CHeader *s2cHeader = reinterpret_cast<struct S2CHeader *>(recvbuf_);
@@ -281,15 +281,19 @@ void SslManager::HandleLoginReply() {
     ListenToServer();
 }
 
-void SslManager::AddFriend(userid_t userid) {
-    std::vector<uint8_t> buf;
-    struct C2SHeader c2sHeader;
-    c2sHeader.tsid = ++last_tsid;
-    c2sHeader.type = C2S::ADD_FRIEND_REQ;
-    PushBuf(buf, &c2sHeader, sizeof(c2sHeader));
+void UserPublicInfoReq(userid_t userid) {
+    auto buf = C2SHeaderBuf(C2S::USER_PUBLIC_INFO_REQ);
     PushBuf(buf, &userid, sizeof(userid));
     SendLater(buf.data(), buf.size());
-    transactionType_[last_tsid] = C2S::ADD_FRIEND_REQ;
+}
+void SslManager::HandleUserPublicInfo() {
+
+}
+
+void SslManager::AddFriend(userid_t userid) {
+    auto buf = C2SHeaderBuf(C2S::ADD_FRIEND_REQ);
+    PushBuf(buf, &userid, sizeof(userid));
+    SendLater(buf.data(), buf.size());
 }
 void SslManager::HandleAddFriendResponse() {
     struct S2CHeader *s2cHeader = reinterpret_cast<struct S2CHeader *>(recvbuf_);
@@ -308,13 +312,13 @@ void SslManager::HandleAddFriendResponse() {
 }
 
 void SslManager::ReadAddFriendReply() {
-    boost::asio::async_read(socket_,
-        boost::buffer(recvbuf_, sizeof(S2CAddFriendReply)),
-        boost::bind(&SslManager::HandleAddFriendReply, this, boost::asio::placeholders::error))
+    boost::asio::async_read(*socket_,
+        boost::asio::buffer(recvbuf_, sizeof(S2CAddFriendReply)),
+        boost::bind(&SslManager::HandleAddFriendReply, this, boost::asio::placeholders::error));
 }
 void SslManager::HandleAddFriendReply(const boost::system::error_code& error) {
     HANDLE_ERROR;
-    struct S2CAddFriendReply *s2cAddFriendReply = reinterpret_cast<struct S2CAddFriendReply *>(buf_);
+    struct S2CAddFriendReply *s2cAddFriendReply = reinterpret_cast<struct S2CAddFriendReply *>(recvbuf_);
     emit addFriendReply(s2cAddFriendReply->from, s2cAddFriendReply->reply);
     ListenToServer();
 }

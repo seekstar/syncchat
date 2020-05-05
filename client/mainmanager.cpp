@@ -4,6 +4,7 @@
 #include <QDebug>
 
 #include "myodbc.h"
+#include "escape.h"
 
 MainManager::MainManager(const char *ip, const char *port, QObject *parent)
     : QObject(parent),
@@ -30,10 +31,10 @@ MainManager::MainManager(const char *ip, const char *port, QObject *parent)
         QMessageBox::information(&winLogin, "提示", "密码错误");
     });
     connect(&sslManager, &SslManager::alreadyFriends, [this] {
-        QMessageBox::information(&DialogAddFriend, "提示", "已经是好友");
+        QMessageBox::information(&dialogAddFriend, "提示", "已经是好友");
     });
     connect(&sslManager, &SslManager::addFriendSent, [this] {
-        QMessageBox::information(&DialogAddFriend, "提示", "申请已发送，请等待对方同意");
+        QMessageBox::information(&dialogAddFriend, "提示", "申请已发送，请等待对方同意");
     });
 
     //dialogReconnect and sslManager
@@ -52,6 +53,8 @@ MainManager::MainManager(const char *ip, const char *port, QObject *parent)
     connect(&mainWindow, &MainWindow::AddFriend, &dialogAddFriend, &DialogAddFriend::show);
     connect(&dialogAddFriend, &DialogAddFriend::AddFriend, &sslManager, &SslManager::AddFriend);
     connect(&sslManager, &SslManager::addFriendReply, this, &MainManager::HandleAddFriendReply);
+    connect(this, &MainManager::UserPublicInfoReq, &sslManager, &SslManager::UserPublicInfoReq);
+    connect(&sslManager, &SslManager::UserPublicInfoReply, this, &MainManager::HandleUserPublicInfoReply);
 
     sslManager.start();
     winLogin.show();
@@ -70,5 +73,17 @@ void MainManager::HandleAddFriendReply(userid_t userid, bool reply) {
     } else {
         QMessageBox::information(NULL, "提示", "用户" + QString(std::to_string(userid).c_str()) + "拒绝了您的好友申请");
     }
-    exec_sql("INSERT INTO friends(userid, username) VALUES(" + std::to_string(userid).c_str() + );
+    auto it = usernames.find(userid);
+    if (usernames.end() == it) {
+        emit UserPublicInfoReq(userid);
+        exec_sql("INSERT INTO friends(userid) VALUES(" + std::to_string(userid) + ");", true);
+    } else {
+        exec_sql("INSERT INTO friends(userid, username) VALUES(" +
+                 std::to_string(userid) + ",\"" + escape(it->second) + "\");", true);
+    }
+}
+void MainManager::HandleUserPublicInfoReply(userid_t userid, std::string username) {
+    exec_sql("UPDATE friends SET username = \"" + escape(username) + "\" WHERE userid = " + std::to_string(userid) + ';', true);
+    usernames[userid] = username;
+    qDebug() << "userid = " << userid << ", username = " << username.c_str();
 }

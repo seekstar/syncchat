@@ -33,15 +33,18 @@ signals:
     void signupDone(userid_t userid);
     void wrongPassword();
     void loginDone();
+    void UserPublicInfoReply(userid_t userid, std::string username);
     void alreadyFriends();
     void addFriendSent();
     void addFriendReply(userid_t userid, bool reply);
+    void addFriendReq(userid_t userid, std::string username);
 
 public slots:
     void sslconn();
     void signup(std::vector<uint8_t> content);
     //void login(userid_t userid, uint8_t pwsha256[SHA256_DIGEST_LENGTH]);
     void login(struct LoginInfo loginInfo);
+    void UserPublicInfoReq(userid_t userid);
     void AddFriend(userid_t userid);
 
 private:
@@ -54,15 +57,16 @@ private:
     void SendLater(void *data, size_t len);
     void StartSend();
     void handle_send(const boost::system::error_code& error);
+    std::vector<uint8_t> C2SHeaderBuf(C2S type);
 
     void ListenToServer();
     void HandleS2CHeader(const boost::system::error_code& error);
     void HandleSignupReply();
     void HandleSignupReply2(const boost::system::error_code& error);
     void HandleLoginReply();
+    void HandleUserPublicInfo();
     void HandleAddFriendResponse();
     //void HandleAddFriendReply();
-    void ReadAddFriendReply();
     void HandleAddFriendReply(const boost::system::error_code& error);
 
     io_service_t io_service;

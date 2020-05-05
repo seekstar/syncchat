@@ -1,6 +1,8 @@
 #include "dialogaddfriend.h"
 #include "ui_dialogaddfriend.h"
 
+#include <QMessageBox>
+
 #include <boost/lexical_cast.hpp>
 
 DialogAddFriend::DialogAddFriend(QWidget *parent) :
@@ -8,7 +10,7 @@ DialogAddFriend::DialogAddFriend(QWidget *parent) :
     ui(new Ui::DialogAddFriend)
 {
     ui->setupUi(this);
-    connect(ui->btn_AddFriend, &QPushButton::clicked, this, slotAddFriend);
+    connect(ui->btn_AddFriend, &QPushButton::clicked, this, &DialogAddFriend::slotAddFriend);
 }
 
 void DialogAddFriend::slotAddFriend() {
