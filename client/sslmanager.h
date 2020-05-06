@@ -36,6 +36,7 @@ signals:
     void loginDone(userid_t userid);
     void UserPrivateInfoReply(std::string username, std::string phone);
     void UserPublicInfoReply(userid_t userid, std::string username);
+    void Friends(std::vector<userid_t> friends);
     void alreadyFriends();
     void addFriendSent();
     void addFriendReq(userid_t userid, std::string username);
@@ -51,6 +52,7 @@ public slots:
     void login(struct LoginInfo loginInfo);
     void UserPrivateInfoReq();
     void UserPublicInfoReq(userid_t userid);
+    void AllFriendsReq();
     void AddFriend(userid_t userid);
     void ReplyAddFriend(userid_t userid, bool reply);
     void SendToUser(userid_t userid, msgcontent_t content);
@@ -66,6 +68,7 @@ private:
     void StartSend();
     void handle_send(const boost::system::error_code& error);
     std::vector<uint8_t> C2SHeaderBuf(C2S type);
+    std::vector<uint8_t> C2SHeaderBuf_noreply(C2S type);
     void SendLater(const std::vector<uint8_t>& buf);
 
     void ListenToServer();
@@ -73,14 +76,22 @@ private:
     void HandleSignupReply();
     void HandleSignupReply2(const boost::system::error_code& error);
     void HandleLoginReply();
+
     void HandleUserPrivateInfoHeader(const boost::system::error_code& error);
     void HandleUserPrivateInfoContent(const boost::system::error_code& error);
     void HandleUserPublicInfoHeader(const boost::system::error_code& error);
     void HandleUserPublicInfoContent(const boost::system::error_code& error);
+
+    void HandleFriendsHeader(const boost::system::error_code& error);
+    void HandleFriendsContent(uint64_t num, const boost::system::error_code& error);
+    void HandleFriendsContentNoError(uint64_t num);
+    void HandleFriendsContentMore(uint64_t num, uint64_t readNum, const boost::system::error_code &error);
+
     void HandleAddFriendResponse();
     void HandleAddFriendReqHeader(const boost::system::error_code& error);
     void HandleAddFriendReqContent(const boost::system::error_code& error);
     void HandleAddFriendReply(const boost::system::error_code& error);
+
     void HandleSendToUserResp();
     void HandleSendToUserResp2(const boost::system::error_code& error, userid_t userid, msgcontent_t content);
     void HandlePrivateMsgHeader(const boost::system::error_code& error);
@@ -100,6 +111,7 @@ private:
         sizeof(S2CHeader) + sizeof(UserPublicInfoHeader) + MAX_USERNAME_LEN,
         sizeof(S2CAddFriendReqHeader) + MAX_USERNAME_LEN,
         sizeof(S2CAddFriendReply),
+        sizeof(uint64_t), sizeof(userid_t),   //FRIENDS: at least one place to hold one friend id
         sizeof(MsgS2CReply),
         sizeof(MsgS2CHeader) + MAX_CONTENT_LEN
     });

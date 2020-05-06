@@ -25,6 +25,7 @@ signals:
     void replyAddFriend(userid_t userid, bool reply);
     void UserPrivateInfoReq();
     void UserPublicInfoReq(userid_t);
+    void AllFriendsReq();
 
 public slots:
 
@@ -32,7 +33,9 @@ private slots:
     void HandleLoginDone(userid_t userid);
     void HandleAddFriendReq(userid_t userid, std::string username);
     void HandleAddFriendReply(userid_t userid, bool reply);
+    void HandleNewFriend(userid_t userid);
     void HandleUserPublicInfoReply(userid_t userid, std::string username);
+    void HandleFriends(std::vector<userid_t> friends);
     void HandlePrivateMsgResponse(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime);
     void HandleReceivedPrivateMsg(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime);
     bool WritePrivateMsgToDB(msgid_t msgid, msgtime_t msgtime, userid_t sender, userid_t touser, msgcontent_t content);

@@ -79,15 +79,12 @@ void SslManager::SendLater(const void *data, size_t len) {
     } else {
         sending.resize(len);
         memcpy(sending.data(), data, len);
-        dbgcout << "sending " << len << " bytes\n";
-        boost::asio::async_write(*socket_,
-            boost::asio::buffer(sending),
-            boost::bind(&SslManager::handle_send, this, boost::asio::placeholders::error));
+        busy = true;
+        StartSend();
     }
 }
 void SslManager::StartSend() {
-    swap(sendbuf, sending);
-    dbgcout << "sending " << sending.size() << " bytes\n";
+    qDebug() << "sending " << sending.size() << " bytes";
     boost::asio::async_write(*socket_,
         boost::asio::buffer(sending),
         boost::bind(&SslManager::handle_send, this, boost::asio::placeholders::error));
@@ -98,17 +95,22 @@ void SslManager::handle_send(const boost::system::error_code& error) {
     if (sendbuf.empty()) {
         busy = false;
     } else {
+        swap(sendbuf, sending);
         StartSend();
     }
 }
 std::vector<uint8_t> SslManager::C2SHeaderBuf(C2S type) {
+    transactionType_[last_tsid+1] = type;
+    return C2SHeaderBuf_noreply(type);
+}
+std::vector<uint8_t> SslManager::C2SHeaderBuf_noreply(C2S type) {
     std::vector<uint8_t> buf(sizeof(C2SHeader));
     struct C2SHeader *c2sHeader = reinterpret_cast<struct C2SHeader *>(buf.data());
     c2sHeader->tsid = ++last_tsid;
     c2sHeader->type = type;
-    transactionType_[last_tsid] = type;
     return buf;
 }
+
 void SslManager::SendLater(const std::vector<uint8_t>& buf) {
     SendLater(buf.data(), buf.size());
 }
@@ -189,6 +191,11 @@ void SslManager::HandleS2CHeader(const boost::system::error_code& error) {
     struct S2CHeader *s2cHeader = reinterpret_cast<struct S2CHeader *>(recvbuf_);
     if (0 == s2cHeader->tsid) { //push
         switch (s2cHeader->type) {
+        case S2C::FRIENDS:
+            boost::asio::async_read(*socket_,
+                boost::asio::buffer(recvbuf_, sizeof(uint64_t)),
+                boost::bind(&SslManager::HandleFriendsHeader, this, boost::asio::placeholders::error));
+            break;
         case S2C::ADD_FRIEND_REQ:
             boost::asio::async_read(*socket_,
                 boost::asio::buffer(recvbuf_, sizeof(S2CAddFriendReqHeader)),
@@ -265,7 +272,9 @@ void SslManager::HandleSignupReply() {
         emit phoneTooLong();
         break;
     case S2C::SIGNUP_RESP:
-        HandleSendToUserResp();
+        boost::asio::async_read(*socket_,
+                    boost::asio::buffer(recvbuf_, sizeof(SignupReply)),
+                    boost::bind(&SslManager::HandleSignupReply2, this, boost::asio::placeholders::error));
         break;
     default:
         qWarning() << "Unexpected type in " << __PRETTY_FUNCTION__ << ": " << (S2CBaseType)s2cHeader->type;
@@ -362,6 +371,38 @@ void SslManager::HandleUserPublicInfoContent(const boost::system::error_code& er
         transactionUser_.erase(it);
     }
     ListenToServer();
+}
+
+void SslManager::AllFriendsReq() {
+    qDebug() << __PRETTY_FUNCTION__;
+    SendLater(C2SHeaderBuf_noreply(C2S::ALL_FRIENDS));  //reply as push
+}
+void SslManager::HandleFriendsHeader(const boost::system::error_code& error) {
+    HANDLE_ERROR;
+    uint64_t num = *reinterpret_cast<uint64_t *>(recvbuf_);
+    HandleFriendsContentNoError(num);
+}
+void SslManager::HandleFriendsContent(uint64_t num, const boost::system::error_code &error) {
+    HANDLE_ERROR;
+    HandleFriendsContentNoError(num);
+}
+void SslManager::HandleFriendsContentNoError(uint64_t num) {
+    constexpr uint64_t MAXNUM = RECVBUFSIZE / sizeof(userid_t);
+    uint64_t readNum = std::min(num, MAXNUM);
+    boost::asio::async_read(*socket_,
+        boost::asio::buffer(recvbuf_, readNum * sizeof(userid_t)),
+        boost::bind(&SslManager::HandleFriendsContentMore, this,
+                    num - readNum, readNum, boost::asio::placeholders::error));
+}
+void SslManager::HandleFriendsContentMore(uint64_t num, uint64_t readNum, const boost::system::error_code &error) {
+    HANDLE_ERROR;
+    userid_t *friends = reinterpret_cast<userid_t *>(recvbuf_);
+    emit Friends(std::vector<userid_t>(friends, friends + readNum));
+    if (num) {
+        HandleFriendsContentNoError(num);
+    } else {
+        ListenToServer();
+    }
 }
 
 void SslManager::AddFriend(userid_t userid) {

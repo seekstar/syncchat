@@ -241,6 +241,7 @@ void session::handle_login(transactionid_t tsid, const boost::system::error_code
 }
 
 void session::listen_request() {
+    dbgcout << __PRETTY_FUNCTION__ << '\n';
     boost::asio::async_read(socket_,
         boost::asio::buffer(buf_, sizeof(C2SHeader)),
         boost::bind(&session::handle_request, this, boost::asio::placeholders::error));
@@ -260,11 +261,6 @@ void session::handle_request(const boost::system::error_code& error) {
     dbgcout << "Received a request\n";
     struct C2SHeader *header = reinterpret_cast<struct C2SHeader *>(buf_);
     switch (header->type) {
-    case C2S::MSG:
-        boost::asio::async_read(socket_,
-            boost::asio::buffer(buf_ + sizeof(C2SHeader) + sizeof(MsgS2CReply), sizeof(MsgC2SHeader)),
-            boost::bind(&session::handle_msg, this, boost::asio::placeholders::error));
-        break;
     case C2S::SIGNUP:
     case C2S::LOGIN:
         SendType(header->tsid, S2C::ALREADY_LOGINED);
@@ -286,6 +282,14 @@ void session::handle_request(const boost::system::error_code& error) {
         boost::asio::async_read(socket_,
             boost::asio::buffer(buf_ + sizeof(C2SHeader), sizeof(C2SAddFriendReply)),
             boost::bind(&session::HandleAddFriendReply, this, boost::asio::placeholders::error));
+        break;
+    case C2S::ALL_FRIENDS:
+        HandleAllFriendsReq();
+        break;
+    case C2S::MSG:
+        boost::asio::async_read(socket_,
+            boost::asio::buffer(buf_ + sizeof(C2SHeader) + sizeof(MsgS2CReply), sizeof(MsgC2SHeader)),
+            boost::bind(&session::handle_msg, this, boost::asio::placeholders::error));
         break;
     default:
         dbgcout << "Warning in " << __PRETTY_FUNCTION__ << ": Unexpected request type " << 
@@ -452,6 +456,42 @@ void session::HandleAddFriendReply(const boost::system::error_code& error) {
     }
     listen_request();
 }
+
+void session::HandleAllFriendsReq() {
+    dbgcout << __PRETTY_FUNCTION__ << '\n';
+    struct S2CHeader *s2cHeader = reinterpret_cast<struct S2CHeader *>(buf_);
+    uint64_t *num = reinterpret_cast<uint64_t *>(s2cHeader + 1);
+    userid_t *friendIdStart = reinterpret_cast<userid_t *>(num + 1);
+    s2cHeader->tsid = 0;    //push
+    s2cHeader->type = S2C::FRIENDS;
+    if (odbc_exec(std::cerr, ("SELECT user2 FROM friends WHERE user1 = " + std::to_string(userid) + ';').c_str())) {
+        std::cerr << "Error in " << __PRETTY_FUNCTION__ << ": odbc_exec fail\n";
+        reset();
+        return;
+    }
+    *num = 0;
+    userid_t *friendId = friendIdStart;
+    while (1) {
+        if (reinterpret_cast<uint8_t*>(friendId + 1) > buf_ + BUFSIZE) {
+            SendLater(buf_, reinterpret_cast<uint8_t*>(friendId) - buf_);
+            friendId = friendIdStart;
+            *num = 0;
+        }
+        SQLLEN length;
+        SQLBindCol(hstmt, 1, SQL_C_UBIGINT, friendId, sizeof(userid_t), &length);
+        if (SQL_NO_DATA != SQLFetch(hstmt)) {
+            ++*num;
+            ++friendId;
+        } else {
+            if (*num) {
+                SendLater(buf_, reinterpret_cast<uint8_t*>(friendId) - buf_);
+            }
+            break;
+        }
+    }
+    listen_request();
+}
+
 void session::handle_msg(const boost::system::error_code& error) {
     static_assert(sizeof(C2SHeader) + sizeof(MsgS2CHeader) + MAX_CONTENT_LEN <= BUFSIZE);
     if (error) {

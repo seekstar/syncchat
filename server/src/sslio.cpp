@@ -24,14 +24,11 @@ void SslIO::SendLater(const void *data, size_t len) {
     } else {
         sending.resize(len);
         memcpy(sending.data(), data, len);
-        dbgcout << "sending " << len << " bytes\n";
-        boost::asio::async_write(socket_,
-            boost::asio::buffer(sending),
-            boost::bind(&SslIO::handle_send, this, boost::asio::placeholders::error));
+        busy = true;
+        StartSend();
     }
 }
 void SslIO::StartSend() {
-    swap(sendbuf, sending);
     dbgcout << "sending " << sending.size() << " bytes\n";
     boost::asio::async_write(socket_,
         boost::asio::buffer(sending),
@@ -46,6 +43,7 @@ void SslIO::handle_send(const boost::system::error_code& error) {
     if (sendbuf.empty()) {
         busy = false;
     } else {
+        swap(sendbuf, sending);
         StartSend();
     }
 }

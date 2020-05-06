@@ -32,11 +32,14 @@ public:
     void NewFriend(userid_t userid, std::string username);
     void UpdateUsername(userid_t userid, std::string username);
     void HandlePrivateMsgTooLong(userid_t userid, msgcontent_t content);
+    void HandlePrivateMsgResponse(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime);
     void HandlePrivateMsg(userid_t frd, userid_t sender, msgcontent_t content, msgid_t msgid, msgtime_t time);
 
     userid_t myid;
     std::string myUsername, myPhone;
     std::unordered_map<userid_t, std::string> usernames;
+    std::unordered_map<userid_t, ChatInfo> userChatInfo;
+    std::unordered_map<groupid_t, ChatInfo> groupChatInfo;
 
 signals:
     void AddFriend();
@@ -48,6 +51,8 @@ private:
     std::string content2str(msgcontent_t content);
     msgcontent_t GetContentByInput(std::string in);
     void Send();
+    void SetUserChatEditable(userid_t userid);
+    void ClearUserChatEdit(userid_t userid);
 
     Ui::MainWindow *ui;
 
@@ -56,9 +61,7 @@ private:
     groupid_t curGroup_;
     //textBrowser, textEdit
     std::unordered_map<QListWidgetItem *, bool> itemIsUser_;
-    std::unordered_map<userid_t, ChatInfo> userChatInfo_;
     std::unordered_map<QListWidgetItem *, userid_t> itemUser_;
-    std::unordered_map<groupid_t, ChatInfo> groupChatInfo_;
     std::unordered_map<QListWidgetItem *, groupid_t> itemGroup_;
 };
 

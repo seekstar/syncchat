@@ -17,6 +17,8 @@ MainWindow::MainWindow(QWidget *parent) :
     curGroup_(0)
 {
     ui->setupUi(this);
+    ui->textEdit->setReadOnly(true);
+    ui->textEdit->setText("点击左边的好友发送消息");
     connect(ui->actionAddFriend, &QAction::triggered, this, &MainWindow::AddFriend);
     connect(ui->btn_send, &QPushButton::clicked, this, &MainWindow::Send);
     connect(ui->chats, &QListWidget::itemClicked, this, &MainWindow::HandleItemClicked);
@@ -35,13 +37,13 @@ void MainWindow::NewFriend(userid_t userid, std::string username) {
     QListWidgetItem *item = new QListWidgetItem(username.c_str());
     ui->chats->addItem(item);
     itemIsUser_[item] = true;
-    userChatInfo_[userid] = {item, "", "", false};
+    userChatInfo[userid] = {item, "", "", false};
     itemUser_[item] = userid;
 }
 
 void MainWindow::UpdateUsername(userid_t userid, std::string username) {
-    auto it = userChatInfo_.find(userid);
-    if (userChatInfo_.end() == it) {
+    auto it = userChatInfo.find(userid);
+    if (userChatInfo.end() == it) {
         qDebug() << "Warning in" << __PRETTY_FUNCTION__ << ": No such a user " << userid;
         return;
     }
@@ -58,6 +60,11 @@ void MainWindow::HandlePrivateMsgTooLong(userid_t userid, msgcontent_t content) 
             "你给好友" + it->second + "(账号为" + std::to_string(userid) + ")发送的消息过长"
         ).c_str()));
     }
+    SetUserChatEditable(userid);
+}
+void MainWindow::HandlePrivateMsgResponse(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime) {
+    HandlePrivateMsg(userid, myid, content, msgid, msgtime);
+    ClearUserChatEdit(userid);
 }
 
 std::string MainWindow::content2str(msgcontent_t content) {
@@ -80,8 +87,8 @@ void MainWindow::HandlePrivateMsg(userid_t frd, userid_t sender, msgcontent_t co
     if (curIsUser_ && curUser_ == frd) {
         ui->textBrowser->append(disp.str().c_str());
     } else {
-        auto it = userChatInfo_.find(frd);
-        if (userChatInfo_.end() == it) {
+        auto it = userChatInfo.find(frd);
+        if (userChatInfo.end() == it) {
             qDebug() << "Warning in" << __PRETTY_FUNCTION__ << ": user" << frd << "has no corresponding chat";
             return;
         }
@@ -94,8 +101,8 @@ void MainWindow::HandleItemClicked(QListWidgetItem *item) {
     //backup
     if (curIsUser_) {
         if (curUser_) {
-            auto it = userChatInfo_.find(curUser_);
-            assert(it != userChatInfo_.end());
+            auto it = userChatInfo.find(curUser_);
+            assert(it != userChatInfo.end());
             it->second.textBrowser = ui->textBrowser->toPlainText();
             it->second.textEdit = ui->textEdit->toPlainText();
             it->second.readonly = ui->textEdit->isReadOnly();
@@ -113,8 +120,8 @@ void MainWindow::HandleItemClicked(QListWidgetItem *item) {
     curIsUser_ = itemIsUser_[item];
     if (curIsUser_) {
         curUser_ = itemUser_[item];
-        auto it = userChatInfo_.find(curUser_);
-        if (userChatInfo_.end() == it) {
+        auto it = userChatInfo.find(curUser_);
+        if (userChatInfo.end() == it) {
             qDebug() << "Error in" << __PRETTY_FUNCTION__ << ": item" << item << "has no corresponding user";
             return;
         }
@@ -138,6 +145,32 @@ void MainWindow::Send() {
     } else {
         emit SendToGroup(curGroup_, content);
     }
+}
+
+void MainWindow::SetUserChatEditable(userid_t userid) {
+    if (curIsUser_ && curUser_ == userid) {
+        ui->textEdit->setReadOnly(false);
+    } else {
+        auto it = userChatInfo.find(userid);
+        if (userChatInfo.end() == it) {
+            qDebug() << "Error in" << __PRETTY_FUNCTION__ << ": User " << userid << " has no corresponding chat";
+            return;
+        }
+        it->second.readonly = false;
+    }
+}
+void MainWindow::ClearUserChatEdit(userid_t userid) {
+    if (curIsUser_ && curUser_ == userid) {
+        ui->textEdit->clear();
+    } else {
+        auto it = userChatInfo.find(userid);
+        if (userChatInfo.end() == it) {
+            qDebug() << "Error in" << __PRETTY_FUNCTION__ << ": User " << userid << " has no corresponding chat";
+            return;
+        }
+        it->second.textEdit = "";
+    }
+    SetUserChatEditable(userid);
 }
 
 MainWindow::~MainWindow()

@@ -38,6 +38,7 @@ private:
     void HandleUserPublicInfoReq(const boost::system::error_code& error);
     void HandleAddFriendReq(const boost::system::error_code& error);
     void HandleAddFriendReply(const boost::system::error_code& error);
+    void HandleAllFriendsReq();
     void handle_msg(const boost::system::error_code& error);
     void IgnoreMsgContent(size_t len);
     void HandleIgnore(size_t len, const boost::system::error_code& error);
@@ -62,6 +63,7 @@ private:
         sizeof(C2SHeader) + sizeof(C2SAddFriendReq), 
         sizeof(S2CHeader) + sizeof(S2CAddFriendReqHeader) + MAX_USERNAME_LEN,
         sizeof(S2CHeader) + sizeof(S2CAddFriendReply),
+        sizeof(S2CHeader) + sizeof(uint64_t) + sizeof(userid_t),    //At least one place to store friend id
         sizeof(S2CHeader) + sizeof(MsgS2CHeader) + MAX_CONTENT_LEN
     });
     uint8_t buf_[BUFSIZE];

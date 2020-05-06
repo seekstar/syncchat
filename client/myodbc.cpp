@@ -23,8 +23,9 @@ bool myodbcLogin(const char *connStr) {
              ");", false);
     exec_sql("CREATE TABLE msg ("
              "msgid BIGINT UNSIGNED PRIMARY KEY,"
-             "time BIGINT COMMENT '服务器接收到消息的时间',"
-             "sender BIGINT UNSIGNED COMMENT '发送方id',"
+             "msgtime BIGINT,"
+             "sender BIGINT UNSIGNED,"
+             "touser BIGINT UNSIGNED,"
              "content BLOB(2000)"
              ");", false);
     return false;
@@ -49,9 +50,9 @@ bool exec_sql(const std::string& stmt, bool critical) {
         if (critical) {
             qDebug() << "ERROR!";
             QMessageBox::critical(NULL, "Execute error!", QString(err.str().c_str()));
-        }/* else {
+        } else {
             qDebug() << "Uncritical execute error:" << err.str().c_str();
-        }*/
+        }
         return true;
     }
     return false;

@@ -23,9 +23,10 @@ enum class C2S : C2SBaseType {
     USER_PRIVATE_INFO_REQ,  //username, phone
     ADD_FRIEND_REQ,
     ADD_FRIEND_REPLY,
+    ALL_FRIENDS,
+    ONLINE_FRIENDS,
     MSG,
     MSG_REQ,
-    ONLINE_FRIENDS,
     ONLINE_GROUP_MEMBER,
     MSG_GROUP,
     MSG_GROUP_REQ,
@@ -52,10 +53,10 @@ enum class S2C : S2CBaseType {
     SIGNUP_RESP,
     USER_PRIVATE_INFO,
     USER_PUBLIC_INFO,
+    //ONLINE_FRIENDS,
     MSG_RESP,
-    ONLINE_FRIENDS,
     MSG_GROUP_REPONSE,
-    ONLINE_GROUP_MEMBER,
+    //ONLINE_GROUP_MEMBER,
     P2PCONN_RESP,  //The address of the peer
 
     //push
@@ -63,6 +64,7 @@ enum class S2C : S2CBaseType {
     SOMEONE_LOGOUT,
     ADD_FRIEND_REQ,
     ADD_FRIEND_REPLY, //agree or not
+    FRIENDS,    //There may be many friends, so send them in batches.
     MSG,
     MSG_GROUP,
     P2PCONN
@@ -149,6 +151,11 @@ struct MsgS2CHeader : MsgS2CReply/*, MsgC2SHeader*/ {
     userid_t from;                          //8
     uint64_t len; //length of content       //8
 };
+// struct FriendInfoHeader {
+//     userid_t userid;
+//     uint32_t nameLen;
+//     char __padding[4];
+// };
 
 struct MsgGroupHeader {
     userid_t from;      //8

@@ -30,15 +30,20 @@ void InitDB(std::ostream& err) {
         "PRIMARY KEY(user1, user2)"
     ");");
     odbc_exec(err, "CREATE TABLE msg ("
-        "msgid BIGINT UNSIGNED PRIMARY KEY,"
-        "time BIGINT COMMENT '服务器接收到消息的时间',"
+        "msgid BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,"
+        "msgtime BIGINT COMMENT '服务器接收到消息的时间',"
         "sender BIGINT UNSIGNED COMMENT '发送方id',"
         "touser BIGINT UNSIGNED,"
         "content BLOB(2000)"
     ");");
+    odbc_exec(err, "CREATE PROCEDURE insert_msg(OUT msgid BIGINT UNSIGNED, IN msgtime BIGINT, IN sender BIGINT UNSIGNED, IN touser BIGINT UNSIGNED, IN content BLOB(2000))\n"
+        "BEGIN\n"
+            "INSERT INTO msg(msgtime, sender, touser, content) VALUES(msgtime, sender, touser, content);\n"
+            "SET msgid = LAST_INSERT_ID();\n"
+        "END");
     odbc_exec(err, "CREATE TABLE gmsg ("
         "msgid BIGINT UNSIGNED PRIMARY KEY,"
-        "time BIGINT COMMENT '服务器接收到消息的时间',"
+        "msgtime BIGINT COMMENT '服务器接收到消息的时间',"
         "sender BIGINT UNSIGNED COMMENT '发送方id',"
         "togroup BIGINT UNSIGNED,"
         "content BLOB(2000)"

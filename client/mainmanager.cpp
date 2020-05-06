@@ -50,6 +50,8 @@ MainManager::MainManager(const char *ip, const char *port, QObject *parent)
     connect(&sslManager, &SslManager::loginDone, this, &MainManager::HandleLoginDone);
     connect(this, &MainManager::UserPrivateInfoReq, &sslManager, &SslManager::UserPrivateInfoReq);
     connect(&sslManager, &SslManager::UserPrivateInfoReply, &mainWindow, &MainWindow::UpdatePrivateInfo);
+    connect(this, &MainManager::AllFriendsReq, &sslManager, &SslManager::AllFriendsReq);
+    connect(&sslManager, &SslManager::Friends, this, &MainManager::HandleFriends);
     //dialogAddFriend
     connect(&mainWindow, &MainWindow::AddFriend, &dialogAddFriend, &DialogAddFriend::show);
     connect(&dialogAddFriend, &DialogAddFriend::AddFriend, &sslManager, &SslManager::AddFriend);
@@ -76,6 +78,7 @@ MainManager::~MainManager() {
 }
 
 void MainManager::HandleLoginDone(userid_t userid) {
+    qDebug() << __PRETTY_FUNCTION__;
     if (mainWindow.myid) {
         qDebug() << "Duplicate login done: " << userid;
         return;
@@ -103,6 +106,7 @@ void MainManager::HandleLoginDone(userid_t userid) {
         mainWindow.NewFriend(userid, displayName);
     }
     emit UserPrivateInfoReq();
+    emit AllFriendsReq();
 }
 
 void MainManager::HandleAddFriendReq(userid_t userid, std::string username) {
@@ -123,6 +127,10 @@ void MainManager::HandleAddFriendReply(userid_t userid, bool reply) {
         QMessageBox::information(NULL, "提示", "用户" + QString(std::to_string(userid).c_str()) + "拒绝了您的好友申请");
         return;
     }
+    HandleNewFriend(userid);
+    QMessageBox::information(NULL, "提示", "您与" + QString(std::to_string(userid).c_str()) + "成为好友了");
+}
+void MainManager::HandleNewFriend(userid_t userid) {
     auto it = mainWindow.usernames.find(userid);
     if (mainWindow.usernames.end() == it) {
         emit UserPublicInfoReq(userid);
@@ -133,8 +141,8 @@ void MainManager::HandleAddFriendReply(userid_t userid, bool reply) {
                  std::to_string(userid) + ",\"" + escape(it->second) + "\");", true);
         mainWindow.NewFriend(userid, it->second);
     }
-    QMessageBox::information(NULL, "提示", "您与" + QString(std::to_string(userid).c_str()) + "成为好友了");
 }
+
 void MainManager::HandleUserPublicInfoReply(userid_t userid, std::string username) {
     exec_sql("UPDATE friends SET username = \"" + escape(username) + "\" WHERE userid = " + std::to_string(userid) + ';', true);
     mainWindow.usernames[userid] = username;
@@ -142,8 +150,22 @@ void MainManager::HandleUserPublicInfoReply(userid_t userid, std::string usernam
     mainWindow.UpdateUsername(userid, username);
 }
 
+void MainManager::HandleFriends(std::vector<userid_t> friends) {
+    //This function is called after login has been done and all friends have been read from db
+    for (userid_t id : friends) {
+        auto it = mainWindow.userChatInfo.find(id);
+        if (mainWindow.userChatInfo.end() != it) {
+            //already know
+            continue;
+        } else {
+            //This client know the friend for the first time
+            HandleNewFriend(id);
+        }
+    }
+}
+
 void MainManager::HandlePrivateMsgResponse(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime) {
-    mainWindow.HandlePrivateMsg(userid, mainWindow.myid, content, msgid, msgtime);
+    mainWindow.HandlePrivateMsgResponse(userid, content, msgid, msgtime);
     WritePrivateMsgToDB(msgid, msgtime, mainWindow.myid, userid, content);
 }
 
@@ -160,6 +182,6 @@ bool MainManager::WritePrivateMsgToDB(msgid_t msgid, msgtime_t msgtime, userid_t
         std::cerr << "Error in" << __PRETTY_FUNCTION__ << ": SQLBindParameter failed\n";
         return true;
     }
-    return exec_sql("INSERT INTO msg(msgid, time, sender, touser, content) VALUES(" + std::to_string(msgid) + ',' +
+    return exec_sql("INSERT INTO msg(msgid, msgtime, sender, touser, content) VALUES(" + std::to_string(msgid) + ',' +
              std::to_string(msgtime) + ',' + std::to_string(sender) + ',' + std::to_string(touser) + ",?);", true);
 }
