@@ -47,7 +47,8 @@ HEADERS  += ../include/*\
     sslmanager.h \
     myglobal.h \
     pushbuf.h \
-    dialogaddfriend.h
+    dialogaddfriend.h \
+    clienttypes.h
 
 FORMS    += mainwindow.ui \
     winlogin.ui \

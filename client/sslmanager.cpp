@@ -71,7 +71,7 @@ void SslManager::run() {
     }
 
 //TODO: Support call back function to avoid copy when not busy
-void SslManager::SendLater(void *data, size_t len) {
+void SslManager::SendLater(const void *data, size_t len) {
     if (busy) {
         size_t oldsz = sendbuf.size();
         sendbuf.resize(oldsz + len);
@@ -108,6 +108,9 @@ std::vector<uint8_t> SslManager::C2SHeaderBuf(C2S type) {
     c2sHeader->type = type;
     transactionType_[last_tsid] = type;
     return buf;
+}
+void SslManager::SendLater(const std::vector<uint8_t>& buf) {
+    SendLater(buf.data(), buf.size());
 }
 
 void SslManager::handle_handshake(const boost::system::error_code& error)
@@ -184,7 +187,7 @@ void SslManager::ListenToServer() {
 void SslManager::HandleS2CHeader(const boost::system::error_code& error) {
     HANDLE_ERROR;
     struct S2CHeader *s2cHeader = reinterpret_cast<struct S2CHeader *>(recvbuf_);
-    if (0 == s2cHeader->tsid) {
+    if (0 == s2cHeader->tsid) { //push
         switch (s2cHeader->type) {
         case S2C::ADD_FRIEND_REQ:
             boost::asio::async_read(*socket_,
@@ -195,6 +198,11 @@ void SslManager::HandleS2CHeader(const boost::system::error_code& error) {
             boost::asio::async_read(*socket_,
                 boost::asio::buffer(recvbuf_, sizeof(S2CAddFriendReply)),
                 boost::bind(&SslManager::HandleAddFriendReply, this, boost::asio::placeholders::error));
+            break;
+        case S2C::MSG:
+            boost::asio::async_read(*socket_,
+                boost::asio::buffer(recvbuf_, sizeof(MsgS2CHeader)),
+                boost::bind(&SslManager::HandlePrivateMsgHeader, this, boost::asio::placeholders::error));
             break;
         default:
             qWarning() << "Unexpected type in " << __PRETTY_FUNCTION__ << ": " << (S2CBaseType)s2cHeader->type;
@@ -214,6 +222,11 @@ void SslManager::HandleS2CHeader(const boost::system::error_code& error) {
         case C2S::LOGIN:
             HandleLoginReply();
             break;
+        case C2S::USER_PRIVATE_INFO_REQ:
+            boost::asio::async_read(*socket_,
+                boost::asio::buffer(recvbuf_, sizeof(UserPrivateInfoHeader)),
+                boost::bind(&SslManager::HandleUserPrivateInfoHeader, this, boost::asio::placeholders::error));
+            break;
         case C2S::USER_PUBLIC_INFO_REQ:
             boost::asio::async_read(*socket_,
                 boost::asio::buffer(recvbuf_ + sizeof(S2CHeader), sizeof(UserPublicInfoHeader)),
@@ -221,6 +234,9 @@ void SslManager::HandleS2CHeader(const boost::system::error_code& error) {
             break;
         case C2S::ADD_FRIEND_REQ:
             HandleAddFriendResponse();
+            break;
+        case C2S::MSG:
+            HandleSendToUserResp();
             break;
         default:
             qWarning() << "Unexpected transaction id: " << s2cHeader->tsid;
@@ -234,7 +250,7 @@ void SslManager::signup(std::vector<uint8_t> content) {
     qDebug() << __PRETTY_FUNCTION__;
     auto buf = C2SHeaderBuf(C2S::SIGNUP);
     PushBuf(buf, content.data(), content.size());
-    SendLater(buf.data(), buf.size());
+    SendLater(buf);
 }
 void SslManager::HandleSignupReply() {
     struct S2CHeader *s2cHeader = reinterpret_cast<struct S2CHeader *>(recvbuf_);
@@ -249,9 +265,7 @@ void SslManager::HandleSignupReply() {
         emit phoneTooLong();
         break;
     case S2C::SIGNUP_RESP:
-        boost::asio::async_read(*socket_,
-            boost::asio::buffer(recvbuf_, sizeof(SignupReply)),
-            boost::bind(&SslManager::HandleSignupReply2, this, boost::asio::placeholders::error));
+        HandleSendToUserResp();
         break;
     default:
         qWarning() << "Unexpected type in " << __PRETTY_FUNCTION__ << ": " << (S2CBaseType)s2cHeader->type;
@@ -269,7 +283,7 @@ void SslManager::login(struct LoginInfo loginInfo) {
     qDebug() << __PRETTY_FUNCTION__;
     auto buf = C2SHeaderBuf(C2S::LOGIN);
     PushBuf(buf, &loginInfo, sizeof(loginInfo));
-    SendLater(buf.data(), buf.size());
+    SendLater(buf);
     transactionUser_[*reinterpret_cast<transactionid_t*>(buf.data())] = loginInfo.userid;
 }
 void SslManager::HandleLoginReply() {
@@ -299,10 +313,32 @@ void SslManager::HandleLoginReply() {
     ListenToServer();
 }
 
+void SslManager::UserPrivateInfoReq() {
+    qDebug() << __PRETTY_FUNCTION__;
+    SendLater(C2SHeaderBuf(C2S::USER_PRIVATE_INFO_REQ));
+}
+void SslManager::HandleUserPrivateInfoHeader(const boost::system::error_code& error) {
+    HANDLE_ERROR;
+    auto userPrivateInfoHeader = reinterpret_cast<UserPrivateInfoHeader *>(recvbuf_);
+    boost::asio::async_read(*socket_,
+        boost::asio::buffer(recvbuf_ + sizeof(UserPrivateInfoHeader),
+            userPrivateInfoHeader->nameLen + userPrivateInfoHeader->phoneLen),
+        boost::bind(&SslManager::HandleUserPrivateInfoContent, this, boost::asio::placeholders::error));
+}
+void SslManager::HandleUserPrivateInfoContent(const boost::system::error_code& error) {
+    HANDLE_ERROR;
+    auto userPrivateInfoHeader = reinterpret_cast<UserPrivateInfoHeader *>(recvbuf_);
+    char *username = reinterpret_cast<char *>(recvbuf_ + sizeof(userPrivateInfoHeader));
+    char *phone = username + userPrivateInfoHeader->phoneLen;
+    emit UserPrivateInfoReply(std::string(username, userPrivateInfoHeader->nameLen),
+                              std::string(phone, userPrivateInfoHeader->phoneLen));
+    ListenToServer();
+}
+
 void SslManager::UserPublicInfoReq(userid_t userid) {
     auto buf = C2SHeaderBuf(C2S::USER_PUBLIC_INFO_REQ);
     PushBuf(buf, &userid, sizeof(userid));
-    SendLater(buf.data(), buf.size());
+    SendLater(buf);
     transactionUser_[last_tsid] = userid;
 }
 void SslManager::HandleUserPublicInfoHeader(const boost::system::error_code& error) {
@@ -331,7 +367,7 @@ void SslManager::HandleUserPublicInfoContent(const boost::system::error_code& er
 void SslManager::AddFriend(userid_t userid) {
     auto buf = C2SHeaderBuf(C2S::ADD_FRIEND_REQ);
     PushBuf(buf, &userid, sizeof(userid));
-    SendLater(buf.data(), buf.size());
+    SendLater(buf);
 }
 void SslManager::HandleAddFriendResponse() {
     struct S2CHeader *s2cHeader = reinterpret_cast<struct S2CHeader *>(recvbuf_);
@@ -373,12 +409,78 @@ void SslManager::ReplyAddFriend(userid_t userid, bool reply) {
     c2sAddFriendReply.to = userid;
     c2sAddFriendReply.reply = reply;
     PushBuf(buf, &c2sAddFriendReply, sizeof(c2sAddFriendReply));
-    SendLater(buf.data(), buf.size());
+    SendLater(buf);
 }
 
 void SslManager::HandleAddFriendReply(const boost::system::error_code& error) {
     HANDLE_ERROR;
     struct S2CAddFriendReply *s2cAddFriendReply = reinterpret_cast<struct S2CAddFriendReply *>(recvbuf_);
     emit addFriendReply(s2cAddFriendReply->from, s2cAddFriendReply->reply);
+    ListenToServer();
+}
+
+void SslManager::SendToUser(userid_t userid, msgcontent_t content) {
+    qDebug() << __PRETTY_FUNCTION__;
+    auto buf = C2SHeaderBuf(C2S::MSG);
+    struct MsgC2SHeader header;
+    header.to = userid;
+    header.len = content.size();
+    PushBuf(buf, &header, sizeof(header));
+    PushBuf(buf, content.data(), content.size());
+    SendLater(buf);
+    transactionUser_[last_tsid] = userid;
+    transactionContent_[last_tsid] = content;
+}
+void SslManager::HandleSendToUserResp() {
+    struct S2CHeader *s2cHeader = reinterpret_cast<struct S2CHeader *>(recvbuf_);
+    auto itUser = transactionUser_.find(s2cHeader->tsid);
+    if (transactionUser_.end() == itUser) {
+        qDebug() << __PRETTY_FUNCTION__ << ": transaction id" << s2cHeader->tsid << "has no corresponding private message!";
+        return;
+    }
+    userid_t userid = itUser->second;
+    transactionUser_.erase(itUser);
+    auto itContent = transactionContent_.find(s2cHeader->tsid);
+    if (transactionContent_.end() == itContent) {
+        qDebug() << __PRETTY_FUNCTION__ << ": transaction id" << s2cHeader->tsid << "has no corresponding private message!";
+        return;
+    }
+    msgcontent_t content = itContent->second;
+    transactionContent_.erase(itContent);
+    switch (s2cHeader->type) {
+    case S2C::MSG_TOO_LONG:
+        emit PrivateMsgTooLong(userid, content);
+        ListenToServer();
+        break;
+    case S2C::MSG_RESP:
+        boost::asio::async_read(*socket_,
+            boost::asio::buffer(recvbuf_, sizeof(MsgS2CReply)),
+            boost::bind(&SslManager::HandleSendToUserResp2, this, boost::asio::placeholders::error, userid, content));
+        break;
+    default:
+        qDebug() << "Warning in " << __PRETTY_FUNCTION__ << ": Unexpected transaction code: " << (S2CBaseType)s2cHeader->type;
+        break;
+    }
+}
+void SslManager::HandleSendToUserResp2(const boost::system::error_code &error, userid_t userid, msgcontent_t content) {
+    HANDLE_ERROR;
+    auto msgS2CReply = reinterpret_cast<struct MsgS2CReply *>(recvbuf_);
+    emit PrivateMsgResponse(userid, content, msgS2CReply->msgid, msgS2CReply->time);
+    ListenToServer();
+}
+
+void SslManager::HandlePrivateMsgHeader(const boost::system::error_code &error) {
+    HANDLE_ERROR;
+    auto msgS2CHeader = reinterpret_cast<MsgS2CHeader *>(recvbuf_);
+    boost::asio::async_read(*socket_,
+        boost::asio::buffer(recvbuf_ + sizeof(MsgS2CHeader), msgS2CHeader->len),
+        boost::bind(&SslManager::HandlePrivateMsgContent, this, boost::asio::placeholders::error));
+}
+void SslManager::HandlePrivateMsgContent(const boost::system::error_code &error) {
+    HANDLE_ERROR;
+    auto msgS2CHeader = reinterpret_cast<MsgS2CHeader *>(recvbuf_);
+    uint8_t *content = reinterpret_cast<uint8_t *>(msgS2CHeader + 1);
+    emit PrivateMsg(msgS2CHeader->from, msgcontent_t(content, content + msgS2CHeader->len),
+                    msgS2CHeader->msgid, msgS2CHeader->time);
     ListenToServer();
 }

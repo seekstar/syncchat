@@ -50,6 +50,7 @@ enum class S2C : S2CBaseType {
 
     //response
     SIGNUP_RESP,
+    USER_PRIVATE_INFO,
     USER_PUBLIC_INFO,
     MSG_RESP,
     ONLINE_FRIENDS,
@@ -104,6 +105,10 @@ struct LoginInfo {
     uint8_t pwsha256[SHA256_DIGEST_LENGTH];     //32
 };
 
+struct UserPrivateInfoHeader {
+    uint32_t nameLen;
+    uint32_t phoneLen;
+};
 struct UserPublicInfoHeader {
     uint32_t nameLen;
     char __padding[4];
@@ -133,9 +138,10 @@ struct MsgC2SHeader {
     userid_t to;                                //8
     uint64_t len; //length of content           //8
 };
+typedef std::chrono::milliseconds::rep msgtime_t;
 struct MsgS2CReply {
     msgid_t msgid;                          //8
-    std::chrono::milliseconds::rep time;    //8
+    msgtime_t time;    //8
 };
 static_assert(sizeof(MsgS2CReply::time) == 8);
 struct MsgS2CHeader : MsgS2CReply/*, MsgC2SHeader*/ {

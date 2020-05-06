@@ -3,13 +3,14 @@
 #include <QMessageBox>
 #include <QDebug>
 
+#include <iostream>
+
 #include "myodbc.h"
 #include "escape.h"
 
 MainManager::MainManager(const char *ip, const char *port, QObject *parent)
     : QObject(parent),
-      sslManager(ip, port),
-      myid(0)
+      sslManager(ip, port)
 {
     qDebug() << "The thread id of the main thread is " << QThread::currentThreadId();
     //sslManager
@@ -47,6 +48,8 @@ MainManager::MainManager(const char *ip, const char *port, QObject *parent)
     //winLogin
     connect(&winLogin, &WinLogin::login, &sslManager, &SslManager::login);
     connect(&sslManager, &SslManager::loginDone, this, &MainManager::HandleLoginDone);
+    connect(this, &MainManager::UserPrivateInfoReq, &sslManager, &SslManager::UserPrivateInfoReq);
+    connect(&sslManager, &SslManager::UserPrivateInfoReply, &mainWindow, &MainWindow::UpdatePrivateInfo);
     //dialogAddFriend
     connect(&mainWindow, &MainWindow::AddFriend, &dialogAddFriend, &DialogAddFriend::show);
     connect(&dialogAddFriend, &DialogAddFriend::AddFriend, &sslManager, &SslManager::AddFriend);
@@ -55,6 +58,11 @@ MainManager::MainManager(const char *ip, const char *port, QObject *parent)
     connect(&sslManager, &SslManager::addFriendReply, this, &MainManager::HandleAddFriendReply);
     connect(this, &MainManager::UserPublicInfoReq, &sslManager, &SslManager::UserPublicInfoReq);
     connect(&sslManager, &SslManager::UserPublicInfoReply, this, &MainManager::HandleUserPublicInfoReply);
+    //private message
+    connect(&mainWindow, &MainWindow::SendToUser, &sslManager, &SslManager::SendToUser);
+    connect(&sslManager, &SslManager::PrivateMsgTooLong, &mainWindow, &MainWindow::HandlePrivateMsgTooLong);
+    connect(&sslManager, &SslManager::PrivateMsgResponse, this, &MainManager::HandlePrivateMsgResponse);
+    connect(&sslManager, &SslManager::PrivateMsg, this, &MainManager::HandleReceivedPrivateMsg);
 
     sslManager.start();
     winLogin.show();
@@ -68,15 +76,15 @@ MainManager::~MainManager() {
 }
 
 void MainManager::HandleLoginDone(userid_t userid) {
-    if (myid) {
+    if (mainWindow.myid) {
         qDebug() << "Duplicate login done: " << userid;
         return;
     }
-    myid = userid;
+    mainWindow.myid = userid;
     winLogin.close();
-    mainWindow.setWindowTitle(QString(std::to_string(myid).c_str()));
+    mainWindow.setWindowTitle(QString(std::to_string(mainWindow.myid).c_str()));
     mainWindow.show();
-    myodbcLogin(("Driver=SQLite3;Database=syncchatclient" + std::to_string(myid) + ".db").c_str());
+    myodbcLogin(("Driver=SQLite3;Database=syncchatclient" + std::to_string(mainWindow.myid) + ".db").c_str());
     if (exec_sql("SELECT userid, username FROM friends;", true)) {
         return;
     }
@@ -94,9 +102,10 @@ void MainManager::HandleLoginDone(userid_t userid) {
         }
         mainWindow.NewFriend(userid, displayName);
     }
+    emit UserPrivateInfoReq();
 }
 
-void MainManager::HandleAddFriendReq(userid_t userid, std::__cxx11::string username) {
+void MainManager::HandleAddFriendReq(userid_t userid, std::string username) {
     std::string msg = "账号为" + std::to_string(userid) + "\n昵称为" + username + "\n同意吗？";
     bool reply = (QMessageBox::Yes == QMessageBox::question(
         NULL, "加好友请求", QString(msg.c_str()), QMessageBox::Yes | QMessageBox::No
@@ -104,7 +113,6 @@ void MainManager::HandleAddFriendReq(userid_t userid, std::__cxx11::string usern
     if (reply) {
         exec_sql("INSERT INTO friends(userid, username) VALUES(" +
                  std::to_string(userid) + ",\"" + escape(username) + "\");", true);
-        usernames[userid] = username;
         mainWindow.NewFriend(userid, username);
     }
     emit replyAddFriend(userid, reply);
@@ -115,8 +123,8 @@ void MainManager::HandleAddFriendReply(userid_t userid, bool reply) {
         QMessageBox::information(NULL, "提示", "用户" + QString(std::to_string(userid).c_str()) + "拒绝了您的好友申请");
         return;
     }
-    auto it = usernames.find(userid);
-    if (usernames.end() == it) {
+    auto it = mainWindow.usernames.find(userid);
+    if (mainWindow.usernames.end() == it) {
         emit UserPublicInfoReq(userid);
         exec_sql("INSERT INTO friends(userid) VALUES(" + std::to_string(userid) + ");", true);
         mainWindow.NewFriend(userid, std::to_string(userid));
@@ -129,7 +137,29 @@ void MainManager::HandleAddFriendReply(userid_t userid, bool reply) {
 }
 void MainManager::HandleUserPublicInfoReply(userid_t userid, std::string username) {
     exec_sql("UPDATE friends SET username = \"" + escape(username) + "\" WHERE userid = " + std::to_string(userid) + ';', true);
-    usernames[userid] = username;
+    mainWindow.usernames[userid] = username;
     qDebug() << "userid = " << userid << ", username = " << username.c_str();
     mainWindow.UpdateUsername(userid, username);
+}
+
+void MainManager::HandlePrivateMsgResponse(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime) {
+    mainWindow.HandlePrivateMsg(userid, mainWindow.myid, content, msgid, msgtime);
+    WritePrivateMsgToDB(msgid, msgtime, mainWindow.myid, userid, content);
+}
+
+void MainManager::HandleReceivedPrivateMsg(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime) {
+    mainWindow.HandlePrivateMsg(userid, userid, content, msgid, msgtime);
+    WritePrivateMsgToDB(msgid, msgtime, userid, mainWindow.myid, content);
+}
+
+bool MainManager::WritePrivateMsgToDB(msgid_t msgid, msgtime_t msgtime, userid_t sender, userid_t touser, msgcontent_t content) {
+    SQLLEN length = content.size();
+    SQLRETURN retcode = SQLBindParameter(hstmt, 1, SQL_PARAM_INPUT, SQL_C_BINARY, SQL_BINARY, MAX_CONTENT_LEN,
+                     0, content.data(), content.size(), &length);
+    if (!SQL_SUCCEEDED(retcode)) {
+        std::cerr << "Error in" << __PRETTY_FUNCTION__ << ": SQLBindParameter failed\n";
+        return true;
+    }
+    return exec_sql("INSERT INTO msg(msgid, time, sender, touser, content) VALUES(" + std::to_string(msgid) + ',' +
+             std::to_string(msgtime) + ',' + std::to_string(sender) + ',' + std::to_string(touser) + ",?);", true);
 }

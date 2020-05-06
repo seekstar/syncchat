@@ -269,6 +269,9 @@ void session::handle_request(const boost::system::error_code& error) {
     case C2S::LOGIN:
         SendType(header->tsid, S2C::ALREADY_LOGINED);
         break;
+    case C2S::USER_PRIVATE_INFO_REQ:
+        HandleUserPrivateInfoReq();
+        break;
     case C2S::USER_PUBLIC_INFO_REQ:
         boost::asio::async_read(socket_,
             boost::asio::buffer(buf_ + sizeof(C2SHeader), sizeof(userid_t)),
@@ -285,11 +288,50 @@ void session::handle_request(const boost::system::error_code& error) {
             boost::bind(&session::HandleAddFriendReply, this, boost::asio::placeholders::error));
         break;
     default:
-        dbgcout << *(C2SBaseType*)buf_;
+        dbgcout << "Warning in " << __PRETTY_FUNCTION__ << ": Unexpected request type " << 
+                *(C2SBaseType*)buf_ << '\n';
         listen_request();
         break;
     }
 }
+
+void session::HandleUserPrivateInfoReq() {
+    dbgcout << __PRETTY_FUNCTION__ << '\n';
+    auto s2cHeader = reinterpret_cast<struct S2CHeader *>(buf_);
+    auto userPrivateInfoHeader = reinterpret_cast<struct UserPrivateInfoHeader *>(s2cHeader + 1);
+    char *username = reinterpret_cast<char *>(userPrivateInfoHeader + 1);
+    char *phone = reinterpret_cast<char *>(username + MAX_USERNAME_LEN);
+    //tsid is already in place
+    s2cHeader->type = S2C::USER_PRIVATE_INFO;
+    SQLLEN nameLen, phoneLen;
+    if (odbc_exec(std::cerr, (
+        "SELECT username, phone FROM user WHERE userid = " + std::to_string(userid) + ';'
+    ).c_str())) {
+        std::cerr << "Error in " << __PRETTY_FUNCTION__ << ": odbc_exec fail\n";
+        reset();
+        return;
+    }
+    SQLBindCol(hstmt, 1, SQL_C_CHAR, username, MAX_USERNAME_LEN, &nameLen);
+    SQLBindCol(hstmt, 2, SQL_C_CHAR, phone, MAX_PHONE_LEN, &phoneLen);
+    if (SQL_NO_DATA == SQLFetch(hstmt)) {
+        std::cerr << "Error in " << __PRETTY_FUNCTION__ << ": the user logined disappeared in db: " << userid << '\n';
+        reset();
+        return;
+    }
+    odbc_close_cursor(std::cerr);
+    if (SQL_NULL_DATA == nameLen) {
+        nameLen = 0;
+    }
+    if (SQL_NULL_DATA == phoneLen) {
+        phoneLen = 0;
+    }
+    userPrivateInfoHeader->nameLen = nameLen;
+    userPrivateInfoHeader->phoneLen = phoneLen;
+    memcpy(username + nameLen, phone, phoneLen);
+    SendLater(buf_, sizeof(S2CHeader) + sizeof(UserPrivateInfoHeader) + nameLen + phoneLen);
+    listen_request();
+}
+
 void session::HandleUserPublicInfoReq(const boost::system::error_code& error) {
     dbgcout << __PRETTY_FUNCTION__ << '\n';
     HANDLE_ERROR;

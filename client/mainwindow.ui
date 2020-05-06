@@ -40,19 +40,12 @@
         </size>
        </property>
        <property name="currentIndex">
-        <number>1</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="page_chats">
         <layout class="QVBoxLayout" name="verticalLayout_2">
          <item>
           <widget class="QListWidget" name="chats"/>
-         </item>
-        </layout>
-       </widget>
-       <widget class="QWidget" name="page_contacts">
-        <layout class="QVBoxLayout" name="verticalLayout_3">
-         <item>
-          <widget class="QListWidget" name="contacts"/>
          </item>
         </layout>
        </widget>

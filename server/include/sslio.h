@@ -10,7 +10,7 @@ public:
     virtual ~SslIO();
 
     //ssl_socket::lowest_layer_type& socket();
-    void SendLater(void *data, size_t len);
+    void SendLater(const void *data, size_t len);
     virtual void handle_sslio_error(const boost::system::error_code& error);
 
 protected:

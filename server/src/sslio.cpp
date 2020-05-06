@@ -16,7 +16,7 @@ SslIO::~SslIO(){}
 // }
 
 //TODO: Support call back function to avoid copy when not busy
-void SslIO::SendLater(void *data, size_t len) {
+void SslIO::SendLater(const void *data, size_t len) {
     if (busy) {
         size_t oldsz = sendbuf.size();
         sendbuf.resize(oldsz + len);

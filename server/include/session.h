@@ -34,6 +34,7 @@ private:
     void listen_request();
     void listen_request(const boost::system::error_code& error);
     void handle_request(const boost::system::error_code& error);
+    void HandleUserPrivateInfoReq();
     void HandleUserPublicInfoReq(const boost::system::error_code& error);
     void HandleAddFriendReq(const boost::system::error_code& error);
     void HandleAddFriendReply(const boost::system::error_code& error);
@@ -56,6 +57,7 @@ private:
              + MAX_USERNAME_LEN + MAX_PHONE_LEN,
         sizeof(LoginInfo) + 3 * SHA256_DIGEST_LENGTH,
         sizeof(C2SHeader) + sizeof(userid_t),   //HandleUserPublicInfoReq
+        sizeof(S2CHeader) + sizeof(UserPrivateInfoHeader) + MAX_USERNAME_LEN + MAX_PHONE_LEN,
         sizeof(S2CHeader) + sizeof(UserPublicInfoHeader) + MAX_USERNAME_LEN,
         sizeof(C2SHeader) + sizeof(C2SAddFriendReq), 
         sizeof(S2CHeader) + sizeof(S2CAddFriendReqHeader) + MAX_USERNAME_LEN,

@@ -5,13 +5,14 @@
 #include <QDebug>
 
 #include "dialogreconnect.h"
+#include "dialogaddfriend.h"
 #include "sslmanager.h"
+#include "winlogin.h"
+#include "mainwindow.h"
 
 #include <unordered_map>
 
-#include "winlogin.h"
-#include "mainwindow.h"
-#include "dialogaddfriend.h"
+#include "clienttypes.h"
 
 class MainManager : public QObject
 {
@@ -22,6 +23,7 @@ public:
 
 signals:
     void replyAddFriend(userid_t userid, bool reply);
+    void UserPrivateInfoReq();
     void UserPublicInfoReq(userid_t);
 
 public slots:
@@ -31,6 +33,9 @@ private slots:
     void HandleAddFriendReq(userid_t userid, std::string username);
     void HandleAddFriendReply(userid_t userid, bool reply);
     void HandleUserPublicInfoReply(userid_t userid, std::string username);
+    void HandlePrivateMsgResponse(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime);
+    void HandleReceivedPrivateMsg(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime);
+    bool WritePrivateMsgToDB(msgid_t msgid, msgtime_t msgtime, userid_t sender, userid_t touser, msgcontent_t content);
 
 private:
     SslManager sslManager;
@@ -40,9 +45,6 @@ private:
     WinLogin winLogin;
     MainWindow mainWindow;
     DialogAddFriend dialogAddFriend;
-
-    userid_t myid;
-    std::unordered_map<userid_t, std::string> usernames;
 };
 
 #endif // MAINMANAGER_H
