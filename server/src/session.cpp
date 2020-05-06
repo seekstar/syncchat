@@ -283,6 +283,11 @@ void session::handle_request(const boost::system::error_code& error) {
             boost::asio::buffer(buf_ + sizeof(C2SHeader), sizeof(C2SAddFriendReply)),
             boost::bind(&session::HandleAddFriendReply, this, boost::asio::placeholders::error));
         break;
+    case C2S::DELETE_FRIEND:
+        boost::asio::async_read(socket_,
+            boost::asio::buffer(buf_, sizeof(userid_t)),
+            boost::bind(&session::HandleDeleteFriend, this, boost::asio::placeholders::error));
+        break;
     case C2S::ALL_FRIENDS:
         HandleAllFriendsReq();
         break;
@@ -446,13 +451,45 @@ void session::HandleAddFriendReply(const boost::system::error_code& error) {
     it->second->SendLater(buf_, sizeof(S2CHeader) + sizeof(S2CAddFriendReply));
     if (s2cAddFriendReply->reply) {
         //They becomes friends.
-        if (odbc_exec(std::cerr, ("INSERT INTO friends VALUES(" + 
-            std::to_string(userid) + ',' + std::to_string(to) + "),(" + 
+        if (odbc_exec(std::cerr, ("INSERT INTO friends VALUES(" +
+            std::to_string(userid) + ',' + std::to_string(to) + "),(" +
             std::to_string(to) + ',' + std::to_string(userid) + ");").c_str())
         ) {
             reset();
             return;
         }
+    }
+    listen_request();
+}
+
+void session::HandleDeleteFriend(const boost::system::error_code& error) {
+    HANDLE_ERROR;
+    //userid_t friendId = *reinterpret_cast<userid_t *>(s2cHeader + 1);
+    userid_t friendId = *reinterpret_cast<userid_t *>(buf_);
+    if (odbc_exec(std::cerr, ("DELETE FROM friends WHERE user1 = " + std::to_string(userid) +
+        " and user2 = " + std::to_string(friendId) + ';'
+    ).c_str())) {
+        std::cerr << "Error in " << __PRETTY_FUNCTION__ << ": odbc_exec failed\n";
+        reset();
+        return;
+    }
+    if (odbc_exec(std::cerr, ("DELETE FROM friends WHERE user1 = " + std::to_string(friendId) +
+        " and user2 = " + std::to_string(userid) + ';'
+    ).c_str())) {
+        std::cerr << "Error in " << __PRETTY_FUNCTION__ << ": odbc_exec failed\n";
+        reset();
+        return;
+    }
+
+    S2CHeader *s2cHeader = reinterpret_cast<S2CHeader *>(buf_);
+    userid_t *peerId = reinterpret_cast<userid_t *>(s2cHeader + 1);
+    s2cHeader->tsid = 0;    //push
+    s2cHeader->type = S2C::DELETE_FRIEND;
+    *peerId = userid;
+    //TODO: Handle the offline case
+    auto it = user_session.find(friendId);
+    if (it != user_session.end()) {
+        it->second->SendLater(buf_, sizeof(S2CHeader) + sizeof(userid_t));
     }
     listen_request();
 }

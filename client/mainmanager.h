@@ -36,6 +36,8 @@ private slots:
     void HandleNewFriend(userid_t userid);
     void HandleUserPublicInfoReply(userid_t userid, std::string username);
     void HandleFriends(std::vector<userid_t> friends);
+    void DeleteFriend(userid_t);
+
     void HandlePrivateMsgResponse(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime);
     void HandleReceivedPrivateMsg(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime);
     bool WritePrivateMsgToDB(msgid_t msgid, msgtime_t msgtime, userid_t sender, userid_t touser, msgcontent_t content);

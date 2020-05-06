@@ -20,7 +20,7 @@
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
-      <widget class="QStackedWidget" name="stackedWidget">
+      <widget class="QStackedWidget" name="stackedWidget_contact">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
          <horstretch>1</horstretch>
@@ -45,50 +45,91 @@
        <widget class="QWidget" name="page_chats">
         <layout class="QVBoxLayout" name="verticalLayout_2">
          <item>
+          <widget class="QPushButton" name="btn_deleteFriend">
+           <property name="text">
+            <string>删除</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QListWidget" name="chats"/>
          </item>
         </layout>
        </widget>
       </widget>
-      <widget class="QSplitter" name="splitter">
+      <widget class="QStackedWidget" name="stackedWidget_chat">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
          <horstretch>3</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-       <widget class="QTextBrowser" name="textBrowser">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-          <horstretch>0</horstretch>
-          <verstretch>2</verstretch>
-         </sizepolicy>
-        </property>
-       </widget>
-       <widget class="QTextEdit" name="textEdit">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-          <horstretch>0</horstretch>
-          <verstretch>1</verstretch>
-         </sizepolicy>
-        </property>
-       </widget>
-       <widget class="QWidget" name="widget" native="true">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <layout class="QHBoxLayout" name="horizontalLayout">
+       <widget class="QWidget" name="page_logo">
+        <layout class="QVBoxLayout" name="verticalLayout_4">
          <item>
-          <widget class="QPushButton" name="btn_send">
-           <property name="text">
-            <string>发送</string>
+          <widget class="QLabel" name="label">
+           <property name="font">
+            <font>
+             <pointsize>20</pointsize>
+            </font>
            </property>
+           <property name="text">
+            <string>同步聊天
+syncchat</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="page_chat">
+        <layout class="QVBoxLayout" name="verticalLayout_3">
+         <item>
+          <widget class="QSplitter" name="splitter">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <widget class="QTextBrowser" name="textBrowser">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>2</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
+           <widget class="QTextEdit" name="textEdit">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>1</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
+           <widget class="QWidget" name="widget" native="true">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <layout class="QHBoxLayout" name="horizontalLayout">
+             <item>
+              <widget class="QPushButton" name="btn_send">
+               <property name="text">
+                <string>发送</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
           </widget>
          </item>
         </layout>

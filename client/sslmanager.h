@@ -41,6 +41,7 @@ signals:
     void addFriendSent();
     void addFriendReq(userid_t userid, std::string username);
     void addFriendReply(userid_t userid, bool reply);
+    void BeDeletedFriend(userid_t userid);
     void PrivateMsgTooLong(userid_t userid, msgcontent_t content);
     void PrivateMsgResponse(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime);
     void PrivateMsg(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime);
@@ -55,6 +56,7 @@ public slots:
     void AllFriendsReq();
     void AddFriend(userid_t userid);
     void ReplyAddFriend(userid_t userid, bool reply);
+    void DeleteFriend(userid_t userid);
     void SendToUser(userid_t userid, msgcontent_t content);
 
 private:
@@ -91,6 +93,7 @@ private:
     void HandleAddFriendReqHeader(const boost::system::error_code& error);
     void HandleAddFriendReqContent(const boost::system::error_code& error);
     void HandleAddFriendReply(const boost::system::error_code& error);
+    void HandleBeDeletedFriend(const boost::system::error_code& error);
 
     void HandleSendToUserResp();
     void HandleSendToUserResp2(const boost::system::error_code& error, userid_t userid, msgcontent_t content);

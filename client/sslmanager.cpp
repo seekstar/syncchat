@@ -206,6 +206,11 @@ void SslManager::HandleS2CHeader(const boost::system::error_code& error) {
                 boost::asio::buffer(recvbuf_, sizeof(S2CAddFriendReply)),
                 boost::bind(&SslManager::HandleAddFriendReply, this, boost::asio::placeholders::error));
             break;
+        case S2C::DELETE_FRIEND:
+            boost::asio::async_read(*socket_,
+                boost::asio::buffer(recvbuf_, sizeof(userid_t)),
+                boost::bind(&SslManager::HandleBeDeletedFriend, this, boost::asio::placeholders::error));
+            break;
         case S2C::MSG:
             boost::asio::async_read(*socket_,
                 boost::asio::buffer(recvbuf_, sizeof(MsgS2CHeader)),
@@ -457,6 +462,17 @@ void SslManager::HandleAddFriendReply(const boost::system::error_code& error) {
     HANDLE_ERROR;
     struct S2CAddFriendReply *s2cAddFriendReply = reinterpret_cast<struct S2CAddFriendReply *>(recvbuf_);
     emit addFriendReply(s2cAddFriendReply->from, s2cAddFriendReply->reply);
+    ListenToServer();
+}
+
+void SslManager::DeleteFriend(userid_t userid) {
+    auto buf = C2SHeaderBuf_noreply(C2S::DELETE_FRIEND);    //Just delete, don't reply
+    PushBuf(buf, &userid, sizeof(userid));
+    SendLater(buf);
+}
+void SslManager::HandleBeDeletedFriend(const boost::system::error_code& error) {
+    HANDLE_ERROR;
+    emit BeDeletedFriend(*reinterpret_cast<userid_t *>(recvbuf_));
     ListenToServer();
 }
 

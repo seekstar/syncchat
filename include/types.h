@@ -23,6 +23,7 @@ enum class C2S : C2SBaseType {
     USER_PRIVATE_INFO_REQ,  //username, phone
     ADD_FRIEND_REQ,
     ADD_FRIEND_REPLY,
+    DELETE_FRIEND,
     ALL_FRIENDS,
     ONLINE_FRIENDS,
     MSG,
@@ -37,7 +38,8 @@ enum class S2C : S2CBaseType {
     //OK
     LOGIN_OK,
     ADD_FRIEND_SENT,
-    
+    //DELETE_FRIEND_OK,
+
     //fail
     LOGIN_FIRST,
     ALREADY_LOGINED,
@@ -64,6 +66,7 @@ enum class S2C : S2CBaseType {
     SOMEONE_LOGOUT,
     ADD_FRIEND_REQ,
     ADD_FRIEND_REPLY, //agree or not
+    DELETE_FRIEND,
     FRIENDS,    //There may be many friends, so send them in batches.
     MSG,
     MSG_GROUP,

@@ -30,6 +30,7 @@ public:
     ~MainWindow();
     void UpdatePrivateInfo(std::string username, std::string phone);
     void NewFriend(userid_t userid, std::string username);
+    void DeleteFriend(userid_t userid);
     void UpdateUsername(userid_t userid, std::string username);
     void HandlePrivateMsgTooLong(userid_t userid, msgcontent_t content);
     void HandlePrivateMsgResponse(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime);
@@ -43,14 +44,18 @@ public:
 
 signals:
     void AddFriend();
+    void sigDeleteFriend(userid_t);
     void SendToUser(userid_t user, msgcontent_t content);
     void SendToGroup(groupid_t group, msgcontent_t content);
 
-private:
+private Q_SLOTS:
     void HandleItemClicked(QListWidgetItem *item);
+    void Send();
+    void HandleDeleteFriend();
+
+private:
     std::string content2str(msgcontent_t content);
     msgcontent_t GetContentByInput(std::string in);
-    void Send();
     void SetUserChatEditable(userid_t userid);
     void ClearUserChatEdit(userid_t userid);
 

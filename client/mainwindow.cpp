@@ -8,6 +8,9 @@
 
 #include "myodbc.h"
 
+constexpr int logoIndex = 0;
+constexpr int chatIndex = 1;
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     myid(0),
@@ -17,11 +20,13 @@ MainWindow::MainWindow(QWidget *parent) :
     curGroup_(0)
 {
     ui->setupUi(this);
+    ui->stackedWidget_chat->setCurrentIndex(logoIndex);
     ui->textEdit->setReadOnly(true);
-    ui->textEdit->setText("点击左边的好友发送消息");
+    //ui->textEdit->setText("点击左边的好友发送消息");
     connect(ui->actionAddFriend, &QAction::triggered, this, &MainWindow::AddFriend);
     connect(ui->btn_send, &QPushButton::clicked, this, &MainWindow::Send);
     connect(ui->chats, &QListWidget::itemClicked, this, &MainWindow::HandleItemClicked);
+    connect(ui->btn_deleteFriend, &QPushButton::clicked, this, &MainWindow::HandleDeleteFriend);
 }
 
 void MainWindow::UpdatePrivateInfo(std::string username, std::string phone) {
@@ -98,6 +103,7 @@ void MainWindow::HandlePrivateMsg(userid_t frd, userid_t sender, msgcontent_t co
 
 void MainWindow::HandleItemClicked(QListWidgetItem *item) {
     qDebug() << item->text() << "clicked";
+    ui->stackedWidget_chat->setCurrentIndex(chatIndex);
     //backup
     if (curIsUser_) {
         if (curUser_) {
@@ -145,6 +151,23 @@ void MainWindow::Send() {
     } else {
         emit SendToGroup(curGroup_, content);
     }
+}
+
+void MainWindow::HandleDeleteFriend() {
+    if (curIsUser_) {
+        emit sigDeleteFriend(curUser_);
+        DeleteFriend(curUser_);
+    } else {
+        QMessageBox::information(this, "提示", "暂未实现退群功能");
+    }
+}
+void MainWindow::DeleteFriend(userid_t userid) {
+    delete ui->chats->takeItem(ui->chats->row(userChatInfo[curUser_].item));
+    userChatInfo.erase(userid);
+    if (curIsUser_ && curUser_ == userid) {
+        ui->stackedWidget_chat->setCurrentIndex(logoIndex);
+    }
+    QMessageBox::information(this, "提示", QString(("成功与用户" + std::to_string(userid) + "解除好友关系").c_str()));
 }
 
 void MainWindow::SetUserChatEditable(userid_t userid) {

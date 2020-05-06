@@ -34,11 +34,14 @@ private:
     void listen_request();
     void listen_request(const boost::system::error_code& error);
     void handle_request(const boost::system::error_code& error);
+    
     void HandleUserPrivateInfoReq();
     void HandleUserPublicInfoReq(const boost::system::error_code& error);
     void HandleAddFriendReq(const boost::system::error_code& error);
     void HandleAddFriendReply(const boost::system::error_code& error);
+    void HandleDeleteFriend(const boost::system::error_code& error);
     void HandleAllFriendsReq();
+
     void handle_msg(const boost::system::error_code& error);
     void IgnoreMsgContent(size_t len);
     void HandleIgnore(size_t len, const boost::system::error_code& error);

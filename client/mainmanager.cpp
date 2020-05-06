@@ -60,6 +60,11 @@ MainManager::MainManager(const char *ip, const char *port, QObject *parent)
     connect(&sslManager, &SslManager::addFriendReply, this, &MainManager::HandleAddFriendReply);
     connect(this, &MainManager::UserPublicInfoReq, &sslManager, &SslManager::UserPublicInfoReq);
     connect(&sslManager, &SslManager::UserPublicInfoReply, this, &MainManager::HandleUserPublicInfoReply);
+    //delete friend
+    connect(&mainWindow, &MainWindow::sigDeleteFriend, this, &MainManager::DeleteFriend);
+    connect(&mainWindow, &MainWindow::sigDeleteFriend, &sslManager, &SslManager::DeleteFriend);
+    connect(&sslManager, &SslManager::BeDeletedFriend, this, &MainManager::DeleteFriend);
+    connect(&sslManager, &SslManager::BeDeletedFriend, &mainWindow, &MainWindow::DeleteFriend);
     //private message
     connect(&mainWindow, &MainWindow::SendToUser, &sslManager, &SslManager::SendToUser);
     connect(&sslManager, &SslManager::PrivateMsgTooLong, &mainWindow, &MainWindow::HandlePrivateMsgTooLong);
@@ -161,6 +166,12 @@ void MainManager::HandleFriends(std::vector<userid_t> friends) {
             //This client know the friend for the first time
             HandleNewFriend(id);
         }
+    }
+}
+
+void MainManager::DeleteFriend(userid_t userid) {
+    if (exec_sql("DELETE FROM friends WHERE userid = " + std::to_string(userid) + ';', true)) {
+        qWarning() << "Error in" << __PRETTY_FUNCTION__ << ": exec_sql failed";
     }
 }
 
