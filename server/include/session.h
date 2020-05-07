@@ -50,6 +50,7 @@ private:
 
     void HandleCreateGroupHeader(const boost::system::error_code& error);
     void HandleCreateGroupName(const boost::system::error_code& error);
+    void HandleJoinGroup(const boost::system::error_code& error);
 
     void reset();
     
@@ -73,7 +74,9 @@ private:
         sizeof(S2CHeader) + sizeof(uint64_t) + sizeof(userid_t),    //At least one place to store friend id
         sizeof(S2CHeader) + sizeof(MsgS2CHeader) + MAX_CONTENT_LEN,
         sizeof(C2SHeader) + sizeof(uint64_t) + MAX_GROUPNAME_LEN,
-        sizeof(S2CHeader) + sizeof(CreateGroupReply)
+        sizeof(S2CHeader) + sizeof(CreateGroupReply),
+        sizeof(C2SHeader) + sizeof(grpid_t), sizeof(S2CHeader) + sizeof(grpid_t),
+        sizeof(S2CHeader) + sizeof(S2CMsgGrpHeader) + MAX_CONTENT_LEN
     });
     uint8_t buf_[BUFSIZE];
     /*const static size_t SBUFSIZE = std::max({

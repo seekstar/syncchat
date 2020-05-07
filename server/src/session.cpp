@@ -301,6 +301,11 @@ void session::handle_request(const boost::system::error_code& error) {
             boost::asio::buffer(buf_ + sizeof(C2SHeader), sizeof(uint64_t)),
             boost::bind(&session::HandleCreateGroupHeader, this, boost::asio::placeholders::error));
         break;
+    case C2S::JOIN_GROUP:
+        boost::asio::aync_read(socket_,
+            boost::asio::buffer(buf_, sizeof(grpid_t)),
+            boost::bind(&session::HandleJoinGroup, this, boost::asio::placeholders::error));
+        break;
     default:
         dbgcout << "Warning in " << __PRETTY_FUNCTION__ << ": Unexpected request type " << 
                 *(C2SBaseType*)buf_ << '\n';
@@ -588,14 +593,14 @@ void session::handle_msg_content(const boost::system::error_code& error) {
         SQL_BIGINT, 0, 0, &msgS2CReply->msgid, 0, &msgidLen);
     if (!SQL_SUCCEEDED(retcode)) {
         std::cerr << "Error: handle_msg_content: SQLBindParameter of msgid failed!\n";
-        listen_request();
+        reset();
         return;
     }
     retcode = SQLBindParameter(hstmt, 2, SQL_PARAM_INPUT, SQL_C_BINARY, SQL_BINARY,
         MAX_CONTENT_LEN, 0, content, msgC2SHeader->len, &contentLen);
     if (!SQL_SUCCEEDED(retcode)) {
         std::cerr << "Error: handle_msg_content: SQLBindParameter of content failed!\n";
-        listen_request();
+        reset();
         return;
     }
     msgS2CReply->time = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
@@ -604,7 +609,7 @@ void session::handle_msg_content(const boost::system::error_code& error) {
         std::to_string(userid) + ',' +  //from
         std::to_string(msgC2SHeader->to) + ",?)}"
     ).c_str())) {
-        listen_request();
+        reset();
         return;
     }
     //Response to the sender
@@ -663,6 +668,96 @@ void session::HandleCreateGroupName(const boost::system::error_code& error) {
     createGroupReply->grpid = groupid;
     createGroupReply->time = time;
     SendLater(buf_, sizeof(S2CHeader) + sizeof(CreateGroupReply));
+    listen_request();
+}
+void HandleJoinGroup(const boost::system::error_code& error) {
+    HANDLE_ERROR;
+    grpid_t grpid = *reinterpret_cast<grpid_t *>(buf_);
+    odbc_exec(std::cerr, ("INSERT INTO grpmember(grpid, userid) VALUES(" + std::to_string(userid) + ',' +
+        std::to_string(grpid) + ");"
+    ).c_str()) {
+        dbgcout << "Error in " << __PRETTY_FUNCTION__ << ": odbc_exec error!\n";
+        return;
+    }
+
+    S2CHeader *s2cHeader = reinterpret_cast<S2CHeader *>(buf_);
+    s2cHeader->tsid = 0;    //push
+    s2cHeader->type = S2C::JOIN_GROUP_OK;
+    *reinterpret_cast<grpid_t *>(s2cHeader + 1) = grpid;
+    SendLater(buf_, sizeof(S2CHeader) + sizeof(grpid_t));
+}
+
+void session::HandleGrpMsg(const boost::system::error_code& error) {
+    HANDLE_ERROR;
+    auto c2sGrpMsgHeader = reinterpret_cast<struct C2SGrpMsgHeader*>
+        (buf_ + sizeof(C2SHeader) + sizeof(S2CGrpMsgReply));
+    if (c2sGrpMsgHeader->len > MAX_CONTENT_LEN) {
+        //IgnoreMsgContent(c2sGrpMsgHeader->len);
+        //SendType(S2C::MSG_TOO_LONG);
+        reset();
+        return;
+    }
+    boost::asio::async_read(socket_,
+        boost::asio::buffer(c2sGrpMsgHeader + 1, c2sGrpMsgHeader->len),
+        boost::bind(&session::HandleGrpMsgContent, this,
+            boost::asio::placeholders::error));
+}
+void session::HandleGrpMsgContent(const boost::system::error_code& error) {
+    HANDLE_ERROR;
+    struct C2SHeader *c2sHeader = reinterpret_cast<struct C2SHeader *>(buf_);
+    auto s2cGrpMsgReply = reinterpret_cast<struct S2CGrpMsgReply *>(c2sHeader + 1);
+    auto c2sGrpMsgHeader = reinterpret_cast<struct C2SGrpMsgHeader*>(s2cGrpMsgReply + 1);
+    uint8_t *content = reinterpret_cast<uint8_t *>(c2sGrpMsgHeader + 1);
+    //Write to db
+    using namespace std::chrono;
+    SQLLEN grpmsgidLen = sizeof(grpmsgid_t);
+    SQLLEN contentLen = c2sGrpMsgHeader->len;
+    SQLRETURN retcode = SQLBindParameter(hstmt, 1, SQL_PARAM_OUTPUT, SQL_C_UBIGINT, 
+        SQL_BIGINT, 0, 0, &s2cGrpMsgReply->grpmsgid, 0, &grpmsgidLen);
+    if (!SQL_SUCCEEDED(retcode)) {
+        std::cerr << "Error in " << __PRETTY_FUNCTION__ << ": SQLBindParameter of grpmsgid failed!\n";
+        reset();
+        return;
+    }
+    retcode = SQLBindParameter(hstmt, 2, SQL_PARAM_INPUT, SQL_C_BINARY, SQL_BINARY,
+        MAX_CONTENT_LEN, 0, content, c2sGrpMsgHeader->len, &contentLen);
+    if (!SQL_SUCCEEDED(retcode)) {
+        std::cerr << "Error in " << __PRETTY_FUNCTION__ << ": SQLBindParameter of content failed!\n";
+        reset();
+        return;
+    }
+    s2cGrpMsgReply->time = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    if (odbc_exec(std::cerr, ("{CALL insert_grpmsg(?, " +
+        std::to_string(msgS2CReply->time) + ',' +
+        std::to_string(userid) + ',' +  //from
+        std::to_string(c2sGrpMsgHeader->to) + ",?)}"
+    ).c_str())) {
+        reset();
+        return;
+    }
+    //Response to the sender
+    struct S2CHeader *s2cHeader = reinterpret_cast<struct S2CHeader *>(buf_);
+    s2cHeader->type = S2C::GRPMSG_RESP;
+    SendLater(buf_, sizeof(S2CHeader) + sizeof(S2CGrpMsgReply));
+    //Forward to the receiver
+    struct S2CHeader *s2cHeader = reinterpret_cast<struct S2CHeader *>(buf_);
+    auto s2cMsgGrpHeader = static_cast<struct S2CMsgGrpHeader *>(s2cGrpMsgReply);
+    s2cHeader->tsid = 0;    //push
+    s2cHeader->type = S2C::GRPMSG;
+    if (odbc_exec(std::cerr, ("SELECT userid FROM grpmember WHERE grpid = " + s2cMsgGrpHeader->to + ';'))) {
+        reset();
+        return;
+    }
+    userid_t touser;
+    SQLLEN length;
+    SQLBindCol(hstmt, 1, SQL_C_UBIGINT, &touser, sizeof(touser), &length);
+    while (SQL_NO_DATA != SQLFetch(hstmt)) {
+        //TODO: Handle offline case
+        auto it = user_session.find(touser);
+        if (it != user_session.end()) {
+            it->second->SendLater(s2cHeader, sizeof(S2CHeader) + sizeof(S2CMsgGrpHeader) + s2cMsgGrpHeader->len);
+        }
+    }
     listen_request();
 }
 

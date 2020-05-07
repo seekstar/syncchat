@@ -62,7 +62,7 @@ enum class S2C : S2CBaseType {
     //ONLINE_FRIENDS,
     MSG_RESP,
     CREATE_GROUP_RESP,
-    MSG_GROUP_REPONSE,
+    GRPMSG_RESP,
     //ONLINE_GROUP_MEMBER,
     P2PCONN_RESP,  //The address of the peer
 
@@ -74,6 +74,7 @@ enum class S2C : S2CBaseType {
     DELETE_FRIEND,
     FRIENDS,    //There may be many friends, so send them in batches.
     MSG,
+    JOIN_GROUP_OK,
     MSG_GROUP,
     P2PCONN
 };
@@ -94,6 +95,8 @@ typedef uint64_t userid_t;
 typedef uint64_t grpid_t;
 //message id
 typedef uint64_t msgid_t;
+//group message id
+typedef uint64_t grpmsgid_t;
 
 typedef std::chrono::days::rep daystamp_t;          //4
 typedef std::chrono::milliseconds::rep msgtime_t;   //8
@@ -167,11 +170,6 @@ struct MsgS2CHeader : MsgS2CReply/*, MsgC2SHeader*/ {
 //     char __padding[4];
 // };
 
-struct MsgGroupHeader {
-    userid_t from;      //8
-    grpid_t to;       //8
-};
-
 #define MAX_GROUPNAME_LEN 100
 struct CreateGroupReply {
     grpid_t grpid;      //8
@@ -183,6 +181,19 @@ struct GroupInfoHeader {
     uint32_t namelen;               //4
     //Establishing time
     daystamp_t time;    //4
+};
+struct C2SGrpMsgHeader {
+    grpid_t to;         //8
+    uint64_t len;       //8
+};
+struct S2CGrpMsgReply {
+    grpmsgid_t id;        //8
+    msgtime_t time;     //8
+};
+struct S2CMsgGrpHeader : S2CGrpMsgReply {
+    userid_t from;      //8
+    grpid_t to;         //8
+    uint64_t len;       //8
 };
 
 #endif	//__TYPES_H__
