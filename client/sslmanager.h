@@ -45,6 +45,7 @@ signals:
     void PrivateMsgTooLong(userid_t userid, msgcontent_t content);
     void PrivateMsgResponse(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime);
     void PrivateMsg(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime);
+    void NewGroup(grpid_t grpid, std::string grpname);
 
 public slots:
     void sslconn();
@@ -58,6 +59,8 @@ public slots:
     void ReplyAddFriend(userid_t userid, bool reply);
     void DeleteFriend(userid_t userid);
     void SendToUser(userid_t userid, msgcontent_t content);
+    void CreateGroup(std::string groupname);
+    //void JoinGroup(groupid_t groupid);
 
 private:
     //void run_io_service();
@@ -100,6 +103,8 @@ private:
     void HandlePrivateMsgHeader(const boost::system::error_code& error);
     void HandlePrivateMsgContent(const boost::system::error_code& error);
 
+    void HandleCreateGroupReply(const boost::system::error_code& error);
+
     io_service_t io_service;
     //std::unique_ptr<boost::asio::io_service::work> work;
     QTimer timer;
@@ -129,6 +134,7 @@ private:
     typedef std::unordered_map<transactionid_t, userid_t> TransactionUserMap;
     TransactionUserMap transactionUser_;
     std::unordered_map<transactionid_t, msgcontent_t> transactionContent_;
+    std::unordered_map<transactionid_t, std::string> transactionGroupName_;
 };
 
 #endif // SSLMANAGER_H

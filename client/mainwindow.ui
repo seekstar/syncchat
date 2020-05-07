@@ -147,6 +147,8 @@ syncchat</string>
     <bool>false</bool>
    </attribute>
    <addaction name="actionAddFriend"/>
+   <addaction name="actionJoinGroup"/>
+   <addaction name="actionCreateGroup"/>
    <addaction name="actionMoments"/>
    <addaction name="actionPersonalInfo"/>
   </widget>
@@ -173,6 +175,16 @@ syncchat</string>
   <action name="actionPersonalInfo">
    <property name="text">
     <string>个人信息</string>
+   </property>
+  </action>
+  <action name="actionJoinGroup">
+   <property name="text">
+    <string>加群</string>
+   </property>
+  </action>
+  <action name="actionCreateGroup">
+   <property name="text">
+    <string>建群</string>
    </property>
   </action>
  </widget>

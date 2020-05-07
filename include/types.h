@@ -28,6 +28,9 @@ enum class C2S : C2SBaseType {
     ONLINE_FRIENDS,
     MSG,
     MSG_REQ,
+    CREATE_GROUP,
+    JOIN_GROUP,
+    LEAVE_GROUP,
     ONLINE_GROUP_MEMBER,
     MSG_GROUP,
     MSG_GROUP_REQ,
@@ -50,6 +53,7 @@ enum class S2C : S2CBaseType {
     WRONG_PASSWORD,
     ALREADY_FRIENDS,
     MSG_TOO_LONG,
+    GROUPNAME_TOO_LONG, //TODO
 
     //response
     SIGNUP_RESP,
@@ -57,6 +61,7 @@ enum class S2C : S2CBaseType {
     USER_PUBLIC_INFO,
     //ONLINE_FRIENDS,
     MSG_RESP,
+    CREATE_GROUP_RESP,
     MSG_GROUP_REPONSE,
     //ONLINE_GROUP_MEMBER,
     P2PCONN_RESP,  //The address of the peer
@@ -86,9 +91,12 @@ struct S2CHeader {
 //chat user id
 typedef uint64_t userid_t;
 //chat group id
-typedef uint64_t groupid_t;
+typedef uint64_t grpid_t;
 //message id
 typedef uint64_t msgid_t;
+
+typedef std::chrono::days::rep daystamp_t;          //4
+typedef std::chrono::milliseconds::rep msgtime_t;   //8
 
 #define MAX_USERNAME_LEN 100
 #define MAX_PHONE_LEN 28
@@ -102,7 +110,7 @@ struct SignupHeader {
 };
 struct SignupReply {
     userid_t id;                                //8
-    std::chrono::days::rep day;                 //4
+    daystamp_t day;                 //4
     char __padding[sizeof(id) - sizeof(day)];   //4
 };
 struct LoginInfo {
@@ -143,7 +151,6 @@ struct MsgC2SHeader {
     userid_t to;                                //8
     uint64_t len; //length of content           //8
 };
-typedef std::chrono::milliseconds::rep msgtime_t;
 struct MsgS2CReply {
     msgid_t msgid;                          //8
     msgtime_t time;    //8
@@ -162,13 +169,20 @@ struct MsgS2CHeader : MsgS2CReply/*, MsgC2SHeader*/ {
 
 struct MsgGroupHeader {
     userid_t from;      //8
-    groupid_t to;       //8
+    grpid_t to;       //8
 };
 
+#define MAX_GROUPNAME_LEN 100
+struct CreateGroupReply {
+    grpid_t grpid;      //8
+    //Establishing time
+    daystamp_t time;        //4
+    char __padding[4];      //4
+};
 struct GroupInfoHeader {
     uint32_t namelen;               //4
     //Establishing time
-    std::chrono::days::rep time;    //4
+    daystamp_t time;    //4
 };
 
 #endif	//__TYPES_H__

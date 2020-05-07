@@ -41,6 +41,18 @@ void InitDB(std::ostream& err) {
             "INSERT INTO msg(msgtime, sender, touser, content) VALUES(msgtime, sender, touser, content);\n"
             "SET msgid = LAST_INSERT_ID();\n"
         "END");
+    odbc_exec(err, "CREATE TABLE grp (\n"
+            "grpid BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,\n"
+            "createtime INT,\n"
+            "creator BIGINT UNSIGNED,\n"
+            "grpowner BIGINT UNSIGNED,\n"
+            "grpname CHAR(100)\n"
+    ");");
+    odbc_exec(err, "CREATE PROCEDURE insert_grp(OUT grpid BIGINT UNSIGNED, IN createtime INT, IN creator BIGINT UNSIGNED, IN grpowner BIGINT UNSIGNED, IN grpname CHAR(100))\n"
+        "BEGIN\n"
+            "INSERT INTO grp(createtime, creator, grpowner, grpname) VALUES(createtime, creator, grpowner, grpname);\n"
+            "SET grpid = LAST_INSERT_ID();\n"
+        "END");
     odbc_exec(err, "CREATE TABLE gmsg ("
         "msgid BIGINT UNSIGNED PRIMARY KEY,"
         "msgtime BIGINT COMMENT '服务器接收到消息的时间',"

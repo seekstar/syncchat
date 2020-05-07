@@ -9,6 +9,7 @@
 #include "sslmanager.h"
 #include "winlogin.h"
 #include "mainwindow.h"
+#include "dialogcreategroup.h"
 
 #include <unordered_map>
 
@@ -26,6 +27,7 @@ signals:
     void UserPrivateInfoReq();
     void UserPublicInfoReq(userid_t);
     void AllFriendsReq();
+    //void AllGrpsReq();
 
 public slots:
 
@@ -42,6 +44,8 @@ private slots:
     void HandleReceivedPrivateMsg(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime);
     bool WritePrivateMsgToDB(msgid_t msgid, msgtime_t msgtime, userid_t sender, userid_t touser, msgcontent_t content);
 
+    void HandleNewGroup(grpid_t grpid, std::string grpname);
+
 private:
     SslManager sslManager;
     DialogReconnect dialogReconnect;
@@ -50,6 +54,7 @@ private:
     WinLogin winLogin;
     MainWindow mainWindow;
     DialogAddFriend dialogAddFriend;
+    DialogCreateGroup dialogCreateGroup;
 };
 
 #endif // MAINMANAGER_H

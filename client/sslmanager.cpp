@@ -250,6 +250,12 @@ void SslManager::HandleS2CHeader(const boost::system::error_code& error) {
         case C2S::MSG:
             HandleSendToUserResp();
             break;
+        case C2S::CREATE_GROUP:
+            //HandleCreateGroupReply();
+            boost::asio::async_read(*socket_,
+                boost::asio::buffer(recvbuf_ + sizeof(S2CHeader), sizeof(CreateGroupReply)),
+                boost::bind(&SslManager::HandleCreateGroupReply, this, boost::asio::placeholders::error));
+            break;
         default:
             qWarning() << "Unexpected transaction id: " << s2cHeader->tsid;
             break;
@@ -539,5 +545,29 @@ void SslManager::HandlePrivateMsgContent(const boost::system::error_code &error)
     uint8_t *content = reinterpret_cast<uint8_t *>(msgS2CHeader + 1);
     emit PrivateMsg(msgS2CHeader->from, msgcontent_t(content, content + msgS2CHeader->len),
                     msgS2CHeader->msgid, msgS2CHeader->time);
+    ListenToServer();
+}
+
+void SslManager::CreateGroup(std::__cxx11::string grpname) {
+    auto buf = C2SHeaderBuf(C2S::CREATE_GROUP);
+    uint64_t len = grpname.length();
+    PushBuf(buf, &len, sizeof(len));
+    PushBuf(buf, grpname.c_str(), grpname.length());
+    SendLater(buf);
+    transactionGroupName_[last_tsid] = grpname;
+}
+void SslManager::HandleCreateGroupReply(const boost::system::error_code &error) {
+    HANDLE_ERROR;
+    auto s2cHeader = reinterpret_cast<struct S2CHeader *>(recvbuf_);
+    auto createGroupReply = reinterpret_cast<struct CreateGroupReply *>(s2cHeader + 1);
+    auto it = transactionGroupName_.find(s2cHeader->tsid);
+    if (transactionGroupName_.end() == it) {
+        qDebug() << "Warning in" << __PRETTY_FUNCTION__ << ": transaction id" << s2cHeader->tsid <<
+                    "has no corresponding group name";
+        ListenToServer();
+        return;
+    }
+    emit NewGroup(createGroupReply->grpid, it->second);
+    transactionGroupName_.erase(it);
     ListenToServer();
 }

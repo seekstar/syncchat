@@ -47,6 +47,10 @@ private:
     void HandleIgnore(size_t len, const boost::system::error_code& error);
     void handle_msg_content(const boost::system::error_code& error);
     void send_msg_content(const boost::system::error_code& error);
+
+    void HandleCreateGroupHeader(const boost::system::error_code& error);
+    void HandleCreateGroupName(const boost::system::error_code& error);
+
     void reset();
     
     userid_t userid;
@@ -67,7 +71,9 @@ private:
         sizeof(S2CHeader) + sizeof(S2CAddFriendReqHeader) + MAX_USERNAME_LEN,
         sizeof(S2CHeader) + sizeof(S2CAddFriendReply),
         sizeof(S2CHeader) + sizeof(uint64_t) + sizeof(userid_t),    //At least one place to store friend id
-        sizeof(S2CHeader) + sizeof(MsgS2CHeader) + MAX_CONTENT_LEN
+        sizeof(S2CHeader) + sizeof(MsgS2CHeader) + MAX_CONTENT_LEN,
+        sizeof(C2SHeader) + sizeof(uint64_t) + MAX_GROUPNAME_LEN,
+        sizeof(S2CHeader) + sizeof(CreateGroupReply)
     });
     uint8_t buf_[BUFSIZE];
     /*const static size_t SBUFSIZE = std::max({

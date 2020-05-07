@@ -35,7 +35,8 @@ SOURCES += ../src/*\
     sslmanager.cpp \
     myglobal.cpp \
     pushbuf.cpp \
-    dialogaddfriend.cpp
+    dialogaddfriend.cpp \
+    dialogcreategroup.cpp
 
 HEADERS  += ../include/*\
     mainwindow.h \
@@ -48,13 +49,15 @@ HEADERS  += ../include/*\
     myglobal.h \
     pushbuf.h \
     dialogaddfriend.h \
-    clienttypes.h
+    clienttypes.h \
+    dialogcreategroup.h
 
 FORMS    += mainwindow.ui \
     winlogin.ui \
     dialogsignup.ui \
     dialogreconnect.ui \
-    dialogaddfriend.ui
+    dialogaddfriend.ui \
+    dialogcreategroup.ui
 
 win32 {
     DEFINES  -= UNICODE

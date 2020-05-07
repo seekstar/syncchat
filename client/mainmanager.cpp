@@ -51,6 +51,7 @@ MainManager::MainManager(const char *ip, const char *port, QObject *parent)
     connect(this, &MainManager::UserPrivateInfoReq, &sslManager, &SslManager::UserPrivateInfoReq);
     connect(&sslManager, &SslManager::UserPrivateInfoReply, &mainWindow, &MainWindow::UpdatePrivateInfo);
     connect(this, &MainManager::AllFriendsReq, &sslManager, &SslManager::AllFriendsReq);
+    //connect(this, &MainManager::AllGrpsReq, &SslManager, &SslManager::AllFriendsReq);
     connect(&sslManager, &SslManager::Friends, this, &MainManager::HandleFriends);
     //dialogAddFriend
     connect(&mainWindow, &MainWindow::AddFriend, &dialogAddFriend, &DialogAddFriend::show);
@@ -70,6 +71,10 @@ MainManager::MainManager(const char *ip, const char *port, QObject *parent)
     connect(&sslManager, &SslManager::PrivateMsgTooLong, &mainWindow, &MainWindow::HandlePrivateMsgTooLong);
     connect(&sslManager, &SslManager::PrivateMsgResponse, this, &MainManager::HandlePrivateMsgResponse);
     connect(&sslManager, &SslManager::PrivateMsg, this, &MainManager::HandleReceivedPrivateMsg);
+    //group
+    connect(&mainWindow, &MainWindow::CreateGroup, &dialogCreateGroup, &DialogCreateGroup::show);
+    connect(&dialogCreateGroup, &DialogCreateGroup::CreateGroup, &sslManager, &SslManager::CreateGroup);
+    connect(&sslManager, &SslManager::NewGroup, this, &MainManager::HandleNewGroup);
 
     sslManager.start();
     winLogin.show();
@@ -109,6 +114,24 @@ void MainManager::HandleLoginDone(userid_t userid) {
             displayName = std::string(username, nameLen);
         }
         mainWindow.NewFriend(userid, displayName);
+    }
+
+    if (exec_sql("SELECT grpid, grpname FROM grp;", true)) {
+        return;
+    }
+    grpid_t grpid;
+    char grpname[MAX_GROUPNAME_LEN];
+    SQLBindCol(hstmt, 1, SQL_C_UBIGINT, &grpid, sizeof(grpid), &idLen);
+    SQLBindCol(hstmt, 2, SQL_C_CHAR, grpname, sizeof(grpname), &nameLen);
+    while (SQL_NO_DATA != SQLFetch(hstmt)) {
+        assert(SQL_NULL_DATA != idLen);
+        std::string dispName;
+        if (SQL_NULL_DATA == nameLen) {
+            dispName = std::to_string(grpid);
+        } else {
+            dispName = std::string(grpname, nameLen);
+        }
+        mainWindow.NewGroup(grpid, grpname);
     }
     emit UserPrivateInfoReq();
     emit AllFriendsReq();
@@ -195,4 +218,9 @@ bool MainManager::WritePrivateMsgToDB(msgid_t msgid, msgtime_t msgtime, userid_t
     }
     return exec_sql("INSERT INTO msg(msgid, msgtime, sender, touser, content) VALUES(" + std::to_string(msgid) + ',' +
              std::to_string(msgtime) + ',' + std::to_string(sender) + ',' + std::to_string(touser) + ",?);", true);
+}
+
+void MainManager::HandleNewGroup(grpid_t grpid, std::string grpname) {
+    exec_sql("INSERT INTO grp(grpid, grpname) VALUES(" + std::to_string(grpid) + ",\"" + escape(grpname) + "\");", true);
+    mainWindow.NewGroup(grpid, grpname);
 }

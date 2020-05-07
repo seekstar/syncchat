@@ -17,7 +17,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow),
     curIsUser_(false),
     curUser_(0),
-    curGroup_(0)
+    curGrp_(0)
 {
     ui->setupUi(this);
     ui->stackedWidget_chat->setCurrentIndex(logoIndex);
@@ -27,6 +27,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->btn_send, &QPushButton::clicked, this, &MainWindow::Send);
     connect(ui->chats, &QListWidget::itemClicked, this, &MainWindow::HandleItemClicked);
     connect(ui->btn_deleteFriend, &QPushButton::clicked, this, &MainWindow::HandleDeleteFriend);
+    connect(ui->actionCreateGroup, &QAction::triggered, this, &MainWindow::CreateGroup);
+    connect(ui->actionJoinGroup, &QAction::triggered, this, &MainWindow::JoinGroup);
 }
 
 void MainWindow::UpdatePrivateInfo(std::string username, std::string phone) {
@@ -101,6 +103,16 @@ void MainWindow::HandlePrivateMsg(userid_t frd, userid_t sender, msgcontent_t co
     }
 }
 
+void MainWindow::NewGroup(grpid_t grpid, std::__cxx11::string grpname) {
+    qDebug() << __PRETTY_FUNCTION__;
+    grpnames[grpid] = grpname;
+    QListWidgetItem *item = new QListWidgetItem(grpname.c_str());
+    ui->chats->addItem(item);
+    itemIsUser_[item] = false;
+    grpChatInfo[grpid] = {item, "", "", false};
+    itemGrp_[item] = grpid;
+}
+
 void MainWindow::HandleItemClicked(QListWidgetItem *item) {
     qDebug() << item->text() << "clicked";
     ui->stackedWidget_chat->setCurrentIndex(chatIndex);
@@ -114,14 +126,13 @@ void MainWindow::HandleItemClicked(QListWidgetItem *item) {
             it->second.readonly = ui->textEdit->isReadOnly();
         }
     } else {
-//        curGroup_ = itemGroup_[item];
-//        auto it = groupChatInfo_.find(curGroup_);
-//        if (groupChatInfo_.end() == it) {
-//            qDebug() << "Error in" << __PRETTY_FUNCTION__ << ": item" << item << "has no corresponding group";
-//            return;
-//        }
-//        it->second.textBrowser = ui->textBrowser->toPlainText();
-//        it->second.textEdit = ui->textEdit->toPlainText();
+        if (curGrp_) {
+            auto it = grpChatInfo.find(curGrp_);
+            assert(it != grpChatInfo.end());
+            it->second.textBrowser = ui->textBrowser->toPlainText();
+            it->second.textBrowser = ui->textEdit->toPlainText();
+            it->second.readonly = ui->textEdit->isReadOnly();
+        }
     }
     curIsUser_ = itemIsUser_[item];
     if (curIsUser_) {
@@ -135,7 +146,15 @@ void MainWindow::HandleItemClicked(QListWidgetItem *item) {
         ui->textEdit->setPlainText(it->second.textEdit);
         ui->textEdit->setReadOnly(it->second.readonly);
     } else {
-
+        curGrp_ = itemGrp_[item];
+        auto it = grpChatInfo.find(curGrp_);
+        if (userChatInfo.end() == it) {
+            qDebug() << "Error in" << __PRETTY_FUNCTION__ << ": item" << item << "has no corresponding group";
+            return;
+        }
+        ui->textBrowser->setPlainText(it->second.textBrowser);
+        ui->textEdit->setPlainText(it->second.textEdit);
+        ui->textEdit->setReadOnly(it->second.readonly);
     }
 }
 
@@ -149,7 +168,7 @@ void MainWindow::Send() {
     if (curIsUser_) {
         emit SendToUser(curUser_, content);
     } else {
-        emit SendToGroup(curGroup_, content);
+        emit SendToGroup(curGrp_, content);
     }
 }
 

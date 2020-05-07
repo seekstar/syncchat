@@ -35,18 +35,22 @@ public:
     void HandlePrivateMsgTooLong(userid_t userid, msgcontent_t content);
     void HandlePrivateMsgResponse(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime);
     void HandlePrivateMsg(userid_t frd, userid_t sender, msgcontent_t content, msgid_t msgid, msgtime_t time);
+    void NewGroup(grpid_t grpid, std::string grpname);
 
     userid_t myid;
     std::string myUsername, myPhone;
     std::unordered_map<userid_t, std::string> usernames;
     std::unordered_map<userid_t, ChatInfo> userChatInfo;
-    std::unordered_map<groupid_t, ChatInfo> groupChatInfo;
+    std::unordered_map<grpid_t, ChatInfo> grpChatInfo;
+    std::unordered_map<grpid_t, std::string> grpnames;
 
 signals:
     void AddFriend();
     void sigDeleteFriend(userid_t);
     void SendToUser(userid_t user, msgcontent_t content);
-    void SendToGroup(groupid_t group, msgcontent_t content);
+    void SendToGroup(grpid_t group, msgcontent_t content);
+    void CreateGroup();
+    void JoinGroup();
 
 private Q_SLOTS:
     void HandleItemClicked(QListWidgetItem *item);
@@ -63,11 +67,11 @@ private:
 
     bool curIsUser_;
     userid_t curUser_;
-    groupid_t curGroup_;
+    grpid_t curGrp_;
     //textBrowser, textEdit
     std::unordered_map<QListWidgetItem *, bool> itemIsUser_;
     std::unordered_map<QListWidgetItem *, userid_t> itemUser_;
-    std::unordered_map<QListWidgetItem *, groupid_t> itemGroup_;
+    std::unordered_map<QListWidgetItem *, grpid_t> itemGrp_;
 };
 
 #endif // MAINWINDOW_H

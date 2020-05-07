@@ -28,6 +28,10 @@ bool myodbcLogin(const char *connStr) {
              "touser BIGINT UNSIGNED,"
              "content BLOB(2000)"
              ");", false);
+    exec_sql("CREATE TABLE grp ("
+             "grpid BIGINT UNSIGNED PRIMARY KEY,"
+             "grpname CHAR(100)"
+             ");", false);
     return false;
 }
 

@@ -296,6 +296,11 @@ void session::handle_request(const boost::system::error_code& error) {
             boost::asio::buffer(buf_ + sizeof(C2SHeader) + sizeof(MsgS2CReply), sizeof(MsgC2SHeader)),
             boost::bind(&session::handle_msg, this, boost::asio::placeholders::error));
         break;
+    case C2S::CREATE_GROUP:
+        boost::asio::async_read(socket_,
+            boost::asio::buffer(buf_ + sizeof(C2SHeader), sizeof(uint64_t)),
+            boost::bind(&session::HandleCreateGroupHeader, this, boost::asio::placeholders::error));
+        break;
     default:
         dbgcout << "Warning in " << __PRETTY_FUNCTION__ << ": Unexpected request type " << 
                 *(C2SBaseType*)buf_ << '\n';
@@ -618,6 +623,49 @@ void session::handle_msg_content(const boost::system::error_code& error) {
     }
     listen_request();
 }
+
+void session::HandleCreateGroupHeader(const boost::system::error_code& error) {
+    HANDLE_ERROR;
+    uint64_t *groupnameLen = reinterpret_cast<uint64_t *>(buf_ + sizeof(C2SHeader));
+    boost::asio::async_read(socket_,
+        boost::asio::buffer(groupnameLen + 1, *groupnameLen),
+        boost::bind(&session::HandleCreateGroupName, this, boost::asio::placeholders::error));
+}
+void session::HandleCreateGroupName(const boost::system::error_code& error) {
+    HANDLE_ERROR;
+    uint64_t *groupnameLen = reinterpret_cast<uint64_t *>(buf_ + sizeof(C2SHeader));
+    char *groupname = reinterpret_cast<char *>(groupnameLen + 1);
+    using namespace std::chrono;
+    daystamp_t time = duration_cast<days>(system_clock::now().time_since_epoch()).count();
+    grpid_t groupid;
+    SQLLEN groupidLen;
+    SQLRETURN retcode = SQLBindParameter(hstmt, 1, SQL_PARAM_OUTPUT, SQL_C_UBIGINT, SQL_BIGINT, 0, 0, &groupid, sizeof(groupid), &groupidLen);
+    if (!SQL_SUCCEEDED(retcode)) {
+        dbgcout << "Error in " << __PRETTY_FUNCTION__ << ": SQLBindParameter of groupid failed\n";
+        reset();
+        return;
+    }
+    std::string stmt = "{CALL insert_grp(?, " +
+        std::to_string(time) + ',' +
+        std::to_string(userid) + ',' +
+        std::to_string(userid) + ',' +
+        '"' + escape(std::string(groupname, *groupnameLen)) + "\")}";
+    if (odbc_exec(std::cerr, stmt.c_str())) {
+        reset();
+        //listen_signup_or_login();
+        return;
+    }
+
+    auto s2cHeader = reinterpret_cast<struct S2CHeader *>(buf_);
+    auto createGroupReply = reinterpret_cast<struct CreateGroupReply *>(s2cHeader + 1);
+    //tsid is already in place
+    s2cHeader->type = S2C::CREATE_GROUP_RESP;
+    createGroupReply->grpid = groupid;
+    createGroupReply->time = time;
+    SendLater(buf_, sizeof(S2CHeader) + sizeof(CreateGroupReply));
+    listen_request();
+}
+
 void session::reset() {
     user_session.erase(userid);
     delete this;
