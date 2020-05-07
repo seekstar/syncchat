@@ -53,11 +53,21 @@ void InitDB(std::ostream& err) {
             "INSERT INTO grp(createtime, creator, grpowner, grpname) VALUES(createtime, creator, grpowner, grpname);\n"
             "SET grpid = LAST_INSERT_ID();\n"
         "END");
-    odbc_exec(err, "CREATE TABLE gmsg ("
-        "msgid BIGINT UNSIGNED PRIMARY KEY,"
-        "msgtime BIGINT COMMENT '服务器接收到消息的时间',"
+    odbc_exec(err, "CREATE TABLE grpmember ("
+        "grpid BIGINT UNSIGNED,"
+        "userid BIGINT UNSIGNED,"
+        "PRIMARY KEY(grpid, userid)"
+    ");");
+    odbc_exec(err, "CREATE TABLE grpmsg ("
+        "grpmsgid BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,"
+        "grpmsgtime BIGINT COMMENT '服务器接收到消息的时间',"
         "sender BIGINT UNSIGNED COMMENT '发送方id',"
-        "togroup BIGINT UNSIGNED,"
+        "togrp BIGINT UNSIGNED,"
         "content BLOB(2000)"
     ");");
+    odbc_exec(err, "CREATE PROCEDURE insert_grpmsg(OUT grpmsgid BIGINT UNSIGNED, IN grpmsgtime BIGINT, IN sender BIGINT UNSIGNED, IN togrp BIGINT UNSIGNED, IN content BLOB(2000))\n"
+        "BEGIN\n"
+            "INSERT INTO grp(grpmsgtime, sender, togrp, content) VALUES(grpmsgtime, sender, togrp, content);\n"
+            "SET grpmsgid = LAST_INSERT_ID();\n"
+        "END");
 }

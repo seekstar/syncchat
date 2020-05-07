@@ -32,11 +32,17 @@ SOURCES += ../src/*\
     myodbc.cpp \
     dialogreconnect.cpp \
     mainmanager.cpp \
-    sslmanager.cpp \
     myglobal.cpp \
     pushbuf.cpp \
     dialogaddfriend.cpp \
-    dialogcreategroup.cpp
+    dialogcreategroup.cpp \
+    dialogjoingroup.cpp \
+    sslmanagerbase.cpp \
+    sslmanagerdispatch.cpp \
+    sslmanageruser.cpp \
+    sslmanagerfriend.cpp \
+    sslmanagermsg.cpp \
+    sslmanagergrp.cpp
 
 HEADERS  += ../include/*\
     mainwindow.h \
@@ -50,14 +56,17 @@ HEADERS  += ../include/*\
     pushbuf.h \
     dialogaddfriend.h \
     clienttypes.h \
-    dialogcreategroup.h
+    dialogcreategroup.h \
+    dialogjoingroup.h \
+    sslmanagerbase.h
 
 FORMS    += mainwindow.ui \
     winlogin.ui \
     dialogsignup.ui \
     dialogreconnect.ui \
     dialogaddfriend.ui \
-    dialogcreategroup.ui
+    dialogcreategroup.ui \
+    dialogjoingroup.ui
 
 win32 {
     DEFINES  -= UNICODE

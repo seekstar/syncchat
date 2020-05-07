@@ -51,6 +51,9 @@ private:
     void HandleCreateGroupHeader(const boost::system::error_code& error);
     void HandleCreateGroupName(const boost::system::error_code& error);
     void HandleJoinGroup(const boost::system::error_code& error);
+    void HandleGrpInfoReq(const boost::system::error_code& error);
+    void HandleGrpMsg(const boost::system::error_code& error);
+    void HandleGrpMsgContent(const boost::system::error_code& error);
 
     void reset();
     
@@ -75,7 +78,8 @@ private:
         sizeof(S2CHeader) + sizeof(MsgS2CHeader) + MAX_CONTENT_LEN,
         sizeof(C2SHeader) + sizeof(uint64_t) + MAX_GROUPNAME_LEN,
         sizeof(S2CHeader) + sizeof(CreateGroupReply),
-        sizeof(C2SHeader) + sizeof(grpid_t), sizeof(S2CHeader) + sizeof(grpid_t),
+        sizeof(C2SHeader) + sizeof(grpid_t), sizeof(S2CHeader) + sizeof(grpid_t), //Join group
+        sizeof(S2CHeader) + sizeof(uint64_t) + MAX_GROUPNAME_LEN,       //GRP_INFO
         sizeof(S2CHeader) + sizeof(S2CMsgGrpHeader) + MAX_CONTENT_LEN
     });
     uint8_t buf_[BUFSIZE];

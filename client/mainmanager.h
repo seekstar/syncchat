@@ -10,6 +10,7 @@
 #include "winlogin.h"
 #include "mainwindow.h"
 #include "dialogcreategroup.h"
+#include "dialogjoingroup.h"
 
 #include <unordered_map>
 
@@ -45,6 +46,7 @@ private slots:
     bool WritePrivateMsgToDB(msgid_t msgid, msgtime_t msgtime, userid_t sender, userid_t touser, msgcontent_t content);
 
     void HandleNewGroup(grpid_t grpid, std::string grpname);
+    //void HandleJoinGroup(grpid_t grpid);
 
 private:
     SslManager sslManager;
@@ -55,6 +57,7 @@ private:
     MainWindow mainWindow;
     DialogAddFriend dialogAddFriend;
     DialogCreateGroup dialogCreateGroup;
+    DialogJoinGroup dialogJoinGroup;
 };
 
 #endif // MAINMANAGER_H

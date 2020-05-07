@@ -60,7 +60,8 @@ public slots:
     void DeleteFriend(userid_t userid);
     void SendToUser(userid_t userid, msgcontent_t content);
     void CreateGroup(std::string groupname);
-    //void JoinGroup(groupid_t groupid);
+    void JoinGroup(grpid_t grpid);
+    void GrpInfoReq(grpid_t grpid);
 
 private:
     //void run_io_service();
@@ -104,6 +105,9 @@ private:
     void HandlePrivateMsgContent(const boost::system::error_code& error);
 
     void HandleCreateGroupReply(const boost::system::error_code& error);
+    void HandleJoinGroupReply(const boost::system::error_code& error);
+    void HandleGrpInfoHeader(const boost::system::error_code& error);
+    void HandleGrpInfoContent(const boost::system::error_code& error);
 
     io_service_t io_service;
     //std::unique_ptr<boost::asio::io_service::work> work;
@@ -121,7 +125,10 @@ private:
         sizeof(S2CAddFriendReply),
         sizeof(uint64_t), sizeof(userid_t),   //FRIENDS: at least one place to hold one friend id
         sizeof(MsgS2CReply),
-        sizeof(MsgS2CHeader) + MAX_CONTENT_LEN
+        sizeof(MsgS2CHeader) + MAX_CONTENT_LEN,
+        sizeof(S2CHeader) + sizeof(CreateGroupReply),
+        sizeof(S2CHeader) + sizeof(grpid_t),            //Join group reply
+        sizeof(S2CHeader) + sizeof(uint64_t) + MAX_GROUPNAME_LEN    //group info
     });
     uint8_t recvbuf_[RECVBUFSIZE];
     bool busy;
@@ -134,6 +141,7 @@ private:
     typedef std::unordered_map<transactionid_t, userid_t> TransactionUserMap;
     TransactionUserMap transactionUser_;
     std::unordered_map<transactionid_t, msgcontent_t> transactionContent_;
+    std::unordered_map<transactionid_t, grpid_t> transactionGrp_;
     std::unordered_map<transactionid_t, std::string> transactionGroupName_;
 };
 

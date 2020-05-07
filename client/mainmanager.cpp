@@ -75,6 +75,8 @@ MainManager::MainManager(const char *ip, const char *port, QObject *parent)
     connect(&mainWindow, &MainWindow::CreateGroup, &dialogCreateGroup, &DialogCreateGroup::show);
     connect(&dialogCreateGroup, &DialogCreateGroup::CreateGroup, &sslManager, &SslManager::CreateGroup);
     connect(&sslManager, &SslManager::NewGroup, this, &MainManager::HandleNewGroup);
+    connect(&mainWindow, &MainWindow::JoinGroup, &dialogJoinGroup, &DialogJoinGroup::show);
+    connect(&dialogJoinGroup, &DialogJoinGroup::JoinGroup, &sslManager, &SslManager::JoinGroup);    //reply is NewGroup
 
     sslManager.start();
     winLogin.show();

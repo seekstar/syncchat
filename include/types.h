@@ -32,8 +32,9 @@ enum class C2S : C2SBaseType {
     JOIN_GROUP,
     LEAVE_GROUP,
     ONLINE_GROUP_MEMBER,
-    MSG_GROUP,
-    MSG_GROUP_REQ,
+    GRP_INFO,
+    GRPMSG,
+    GRPMSG_REQ,
     P2PCONN
 };
 typedef uint32_t S2CBaseType;
@@ -54,6 +55,7 @@ enum class S2C : S2CBaseType {
     ALREADY_FRIENDS,
     MSG_TOO_LONG,
     GROUPNAME_TOO_LONG, //TODO
+    ALREADY_GROUP_MEMBER, //TODO
 
     //response
     SIGNUP_RESP,
@@ -64,6 +66,7 @@ enum class S2C : S2CBaseType {
     CREATE_GROUP_RESP,
     GRPMSG_RESP,
     //ONLINE_GROUP_MEMBER,
+    GRP_INFO,
     P2PCONN_RESP,  //The address of the peer
 
     //push
@@ -75,7 +78,7 @@ enum class S2C : S2CBaseType {
     FRIENDS,    //There may be many friends, so send them in batches.
     MSG,
     JOIN_GROUP_OK,
-    MSG_GROUP,
+    GRPMSG,
     P2PCONN
 };
 
@@ -187,11 +190,12 @@ struct C2SGrpMsgHeader {
     uint64_t len;       //8
 };
 struct S2CGrpMsgReply {
-    grpmsgid_t id;        //8
+    grpmsgid_t grpmsgid;        //8
     msgtime_t time;     //8
 };
 struct S2CMsgGrpHeader : S2CGrpMsgReply {
     userid_t from;      //8
+    //overlap with C2SGrpMsgHeader
     grpid_t to;         //8
     uint64_t len;       //8
 };

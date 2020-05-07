@@ -36,12 +36,12 @@ void MainWindow::UpdatePrivateInfo(std::string username, std::string phone) {
     myUsername = username;
     myPhone = phone;
     usernames[myid] = username;
-    setWindowTitle(QString(myUsername.c_str()));
+    setWindowTitle(QString((myUsername + "(账号:" + std::to_string(myid) + ')').c_str()));
 }
 
 void MainWindow::NewFriend(userid_t userid, std::string username) {
     usernames[userid] = username;
-    QListWidgetItem *item = new QListWidgetItem(username.c_str());
+    QListWidgetItem *item = new QListWidgetItem((username + "(账号:" + std::to_string(userid) + ')').c_str());
     ui->chats->addItem(item);
     itemIsUser_[item] = true;
     userChatInfo[userid] = {item, "", "", false};
@@ -106,7 +106,7 @@ void MainWindow::HandlePrivateMsg(userid_t frd, userid_t sender, msgcontent_t co
 void MainWindow::NewGroup(grpid_t grpid, std::__cxx11::string grpname) {
     qDebug() << __PRETTY_FUNCTION__;
     grpnames[grpid] = grpname;
-    QListWidgetItem *item = new QListWidgetItem(grpname.c_str());
+    QListWidgetItem *item = new QListWidgetItem((grpname + "(群号:" + std::to_string(grpid) + ')').c_str());
     ui->chats->addItem(item);
     itemIsUser_[item] = false;
     grpChatInfo[grpid] = {item, "", "", false};

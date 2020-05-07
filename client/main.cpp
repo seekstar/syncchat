@@ -13,6 +13,7 @@ int main(int argc, char *argv[])
     qRegisterMetaType<LoginInfo>("LoginInfo");
     qRegisterMetaType<userid_t>("userid_t");
     qRegisterMetaType<msgcontent_t>("msgcontent_t");
+    qRegisterMetaType<grpid_t>("grpid_t");
     MainManager mainManager("127.0.0.1", "5188");
     //io_service.run();
 
