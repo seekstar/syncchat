@@ -149,7 +149,7 @@ void SslManager::HandleFindByUsernameReplyContent(const boost::system::error_cod
     qDebug() << len << "results";
     while (len--) {
         //qDebug() << *userid;
-        qDebug("%x ", *userid);
+        //qDebug("%x ", *userid);
         res.push_back(*userid);
         ++userid;
     }

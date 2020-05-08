@@ -12,6 +12,11 @@ void SslManager::HandleS2CHeader(const boost::system::error_code& error) {
     struct S2CHeader *s2cHeader = reinterpret_cast<struct S2CHeader *>(recvbuf_);
     if (0 == s2cHeader->tsid) { //push
         switch (s2cHeader->type) {
+        case S2C::INFO:
+            boost::asio::async_read(*socket_,
+                boost::asio::buffer(recvbuf_, sizeof(uint64_t)),
+                boost::bind(&SslManager::HandleInfoHeader, this, boost::asio::placeholders::error));
+            break;
         case S2C::FRIENDS:
             boost::asio::async_read(*socket_,
                 boost::asio::buffer(recvbuf_, sizeof(uint64_t)),

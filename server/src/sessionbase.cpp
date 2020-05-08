@@ -25,6 +25,16 @@ void session::SendType(S2C type) {
     SendLater(buf_, sizeof(S2CHeader));
 }
 
+void session::SendInfo(std::string info) {
+    S2CHeader *s2cHeader = reinterpret_cast<S2CHeader *>(buf_);
+    uint64_t *len = reinterpret_cast<uint64_t *>(s2cHeader + 1);
+    s2cHeader->tsid = 0;    //push
+    s2cHeader->type = S2C::INFO;
+    *len = info.size();
+    memcpy(len + 1, info.c_str(), *len);
+    SendLater(buf_, sizeof(S2CHeader) + sizeof(uint64_t) + *len);
+}
+
 void session::start() {
     socket_.async_handshake(boost::asio::ssl::stream_base::server,
         boost::bind(&session::listen_signup_or_login, this,

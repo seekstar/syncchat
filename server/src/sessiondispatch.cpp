@@ -76,6 +76,14 @@ void session::handle_request(const boost::system::error_code& error) {
             boost::asio::buffer(buf_ + sizeof(C2SHeader), sizeof(grpid_t)),
             boost::bind(&session::HandleGrpInfoReq, this, boost::asio::placeholders::error));
         break;
+    case C2S::ALL_GROUPS:
+        HandleAllGrps();
+        break;
+    case C2S::ALL_GROUP_MEMBER:
+        boost::asio::async_read(socket_,
+            boost::asio::buffer(buf_, sizeof(grpid_t)),
+            boost::bind(&session::HandleAllGrpMember, this, boost::asio::placeholders::error));
+        break;
     case C2S::GRPMSG:
         boost::asio::async_read(socket_,
             boost::asio::buffer(buf_ + sizeof(C2SHeader) + sizeof(S2CGrpMsgReply) + sizeof(userid_t), 

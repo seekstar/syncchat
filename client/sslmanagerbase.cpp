@@ -167,3 +167,19 @@ void SslManager::sslconn() {
                                boost::bind(&SslManager::handle_connect, this, boost::asio::placeholders::error));
     //run_io_service();
 }
+
+void SslManager::HandleInfoHeader(const boost::system::error_code& error) {
+    HANDLE_ERROR;
+    uint64_t len = *reinterpret_cast<uint64_t *>(recvbuf_);
+    boost::asio::async_read(*socket_,
+        boost::asio::buffer(recvbuf_ + sizeof(uint64_t), len),
+        boost::bind(&SslManager::HandleInfoContent, this, boost::asio::placeholders::error));
+}
+void SslManager::HandleInfoContent(const boost::system::error_code &error) {
+    HANDLE_ERROR;
+    //TODO: Handle recvbuf not long enough
+    uint64_t len = *reinterpret_cast<uint64_t *>(recvbuf_);
+    char *content = reinterpret_cast<char *>(recvbuf_ + sizeof(uint64_t));
+    emit info(std::string(content, len));
+    ListenToServer();
+}

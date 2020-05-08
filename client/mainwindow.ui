@@ -150,6 +150,8 @@ syncchat</string>
    <addaction name="actionAddFriend"/>
    <addaction name="actionJoinGroup"/>
    <addaction name="actionCreateGroup"/>
+   <addaction name="actionAllGrps"/>
+   <addaction name="actionAllGrpMember"/>
    <addaction name="actionMoments"/>
    <addaction name="actionPersonalInfo"/>
   </widget>
@@ -191,6 +193,16 @@ syncchat</string>
   <action name="actionFindByUsername">
    <property name="text">
     <string>找人</string>
+   </property>
+  </action>
+  <action name="actionAllGrpMember">
+   <property name="text">
+    <string>群成员</string>
+   </property>
+  </action>
+  <action name="actionAllGrps">
+   <property name="text">
+    <string>群列表</string>
    </property>
   </action>
  </widget>

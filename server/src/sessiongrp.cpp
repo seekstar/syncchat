@@ -104,3 +104,54 @@ void session::HandleGrpInfoReq(const boost::system::error_code& error) {
     SendLater(buf_, sizeof(S2CHeader) + sizeof(uint64_t) + length);
     listen_request();
 }
+
+void session::HandleAllGrps() {
+    if (odbc_exec(std::cerr, (
+        "SELECT grpid, grpname, grpowner FROM grpmember NATURAL JOIN grp WHERE userid = " + 
+        std::to_string(userid) + ';'
+    ).c_str())) {
+        reset();
+        return;
+    }
+    std::ostringstream disp;
+    SQLLEN length, nameLen;
+    grpid_t grpid;
+    char grpname[MAX_GROUPNAME_LEN];
+    userid_t owner;
+    SQLBindCol(hstmt, 1, SQL_C_UBIGINT, &grpid, sizeof(grpid), &length);
+    SQLBindCol(hstmt, 2, SQL_C_CHAR, grpname, sizeof(grpname), &nameLen);
+    SQLBindCol(hstmt, 3, SQL_C_UBIGINT, &owner, sizeof(owner), &length);
+    disp << "群号\t群名\t群主\n";
+    while (SQL_NO_DATA != SQLFetch(hstmt)) {
+        disp << grpid << '\t' << std::string(grpname, nameLen) << '\t' << owner << '\n';
+    }
+    //dbgcout << disp.str(); 
+    SendInfo(disp.str());
+    listen_request();
+}
+
+void session::HandleAllGrpMember(const boost::system::error_code& error) {
+    HANDLE_ERROR;
+    grpid_t grpid = *reinterpret_cast<grpid_t *>(buf_);
+    if (odbc_exec(std::cerr, (
+        "SELECT userid, username FROM user WHERE userid in ("
+        "SELECT userid FROM grpmember WHERE grpid = " + std::to_string(grpid) +
+        ");"
+    ).c_str())) {
+        reset();
+        return;
+    }
+    
+    std::ostringstream disp;
+    SQLLEN idLen, nameLen;
+    userid_t id;
+    char username[MAX_USERNAME_LEN];
+    SQLBindCol(hstmt, 1, SQL_C_UBIGINT, &id, sizeof(id), &idLen);
+    SQLBindCol(hstmt, 2, SQL_C_CHAR, username, sizeof(username), &nameLen);
+    disp << "账号\t用户名\n";
+    while (SQL_NO_DATA != SQLFetch(hstmt)) {
+        disp << id << '\t' << std::string(username, nameLen) << '\n';
+    }
+    SendInfo(disp.str());
+    listen_request();
+}

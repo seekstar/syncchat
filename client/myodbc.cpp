@@ -23,10 +23,10 @@ bool myodbcLogin(const char *connStr) {
              ");", false);
     exec_sql("CREATE TABLE msg ("
              "msgid BIGINT UNSIGNED PRIMARY KEY,"
-             "msgtime BIGINT,"
-             "sender BIGINT UNSIGNED,"
-             "touser BIGINT UNSIGNED,"
-             "content BLOB(2000)"
+             "msgtime BIGINT NOT NULL,"
+             "sender BIGINT UNSIGNED NOT NULL,"
+             "touser BIGINT UNSIGNED NOT NULL,"
+             "content BLOB(2000) NOT NULL"
              ");", false);
     exec_sql("CREATE TABLE grp ("
              "grpid BIGINT UNSIGNED PRIMARY KEY,"
@@ -34,10 +34,10 @@ bool myodbcLogin(const char *connStr) {
              ");", false);
     exec_sql("CREATE TABLE grpmsg ("
              "grpmsgid BIGINT UNSIGNED PRIMARY KEY,"
-             "grpmsgtime BIGINT,"
-             "sender BIGINT UNSIGNED,"
-             "togrp BIGINT UNSIGNED,"
-             "content BLOB(2000)"
+             "grpmsgtime BIGINT NOT NULL,"
+             "sender BIGINT UNSIGNED NOT NULL,"
+             "togrp BIGINT UNSIGNED NOT NULL,"
+             "content BLOB(2000) NOT NULL"
              ");", false);
     return false;
 }

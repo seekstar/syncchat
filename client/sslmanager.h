@@ -33,6 +33,8 @@ signals:
     void noSuchUser();
     void wrongPassword();
     void loginDone(userid_t userid);
+
+    void info(std::string content);
     void UserPrivateInfoReply(std::string username, std::string phone);
     void UserPublicInfoReply(userid_t userid, std::string username);
     void FindByUsernameReply(std::vector<userid_t>);
@@ -68,6 +70,8 @@ public slots:
     void CreateGroup(std::string groupname);
     void JoinGroup(grpid_t grpid);
     void GrpInfoReq(grpid_t grpid);
+    void AllGrps();
+    void AllGrpMember(grpid_t grpid);
     void SendToGroup(grpid_t grpid, msgcontent_t content);
 
     void SendMoment(msgcontent_t content);
@@ -91,6 +95,9 @@ private:
     void HandleSignupReply();
     void HandleSignupReply2(const boost::system::error_code& error);
     void HandleLoginReply();
+
+    void HandleInfoHeader(const boost::system::error_code& error);
+    void HandleInfoContent(const boost::system::error_code& error);
 
     void HandleUserPrivateInfoHeader(const boost::system::error_code& error);
     void HandleUserPrivateInfoContent(const boost::system::error_code& error);

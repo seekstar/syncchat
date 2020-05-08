@@ -32,6 +32,8 @@ enum class C2S : C2SBaseType {
     CREATE_GROUP,
     JOIN_GROUP,
     LEAVE_GROUP,
+    ALL_GROUPS,
+    ALL_GROUP_MEMBER,
     ONLINE_GROUP_MEMBER,
     GRP_INFO,
     GRPMSG,
@@ -73,6 +75,7 @@ enum class S2C : S2CBaseType {
     P2PCONN_RESP,  //The address of the peer
 
     //push
+    INFO,
     SOMEONE_LOGIN,
     SOMEONE_LOGOUT,
     ADD_FRIEND_REQ,

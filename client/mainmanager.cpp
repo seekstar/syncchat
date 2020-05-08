@@ -14,6 +14,9 @@ MainManager::MainManager(const char *ip, const char *port, QObject *parent)
 {
     qDebug() << "The thread id of the main thread is " << QThread::currentThreadId();
     //sslManager
+    connect(&sslManager, &SslManager::info, [this](std::string content) {
+        QMessageBox::information(&mainWindow, "来自服务器的消息", QString(content.c_str()));
+    });
     connect(&sslManager, &SslManager::loginFirst, [this] {
         QMessageBox::information(&mainWindow, "提示", "请先登录");
     });
@@ -84,6 +87,8 @@ MainManager::MainManager(const char *ip, const char *port, QObject *parent)
     connect(&sslManager, &SslManager::NewGroup, this, &MainManager::HandleNewGroup);
     connect(&mainWindow, &MainWindow::JoinGroup, &dialogJoinGroup, &DialogJoinGroup::show);
     connect(&dialogJoinGroup, &DialogJoinGroup::JoinGroup, &sslManager, &SslManager::JoinGroup);    //reply is NewGroup
+    connect(&mainWindow, &MainWindow::sigAllGrps, &sslManager, &SslManager::AllGrps);
+    connect(&mainWindow, &MainWindow::sigAllGrpMember, &sslManager, &SslManager::AllGrpMember);
     //group message
     connect(&mainWindow, &MainWindow::SendToGroup, &sslManager, &SslManager::SendToGroup);
     connect(&sslManager, &SslManager::GrpMsgResp, this, &MainManager::HandleGrpMsgResp);

@@ -5,6 +5,9 @@
 
 #include <QDebug>
 #include <QMessageBox>
+#include <QInputDialog>
+
+#include <boost/lexical_cast.hpp>
 
 #include "myodbc.h"
 
@@ -30,6 +33,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->btn_deleteFriend, &QPushButton::clicked, this, &MainWindow::HandleDeleteFriend);
     connect(ui->actionCreateGroup, &QAction::triggered, this, &MainWindow::CreateGroup);
     connect(ui->actionJoinGroup, &QAction::triggered, this, &MainWindow::JoinGroup);
+    connect(ui->actionAllGrps, &QAction::triggered, this, &MainWindow::sigAllGrps);
+    connect(ui->actionAllGrpMember, &QAction::triggered, this, &MainWindow::slotAllGrpMember);
     connect(ui->actionMoments, &QAction::triggered, this, &MainWindow::sigMoments);
 }
 
@@ -211,6 +216,16 @@ void MainWindow::DeleteFriend(userid_t userid) {
         ui->stackedWidget_chat->setCurrentIndex(logoIndex);
     }
     QMessageBox::information(this, "提示", QString(("成功与用户" + std::to_string(userid) + "解除好友关系").c_str()));
+}
+
+void MainWindow::slotAllGrpMember() {
+    std::string grpidIn = QInputDialog::getText(this, "请输入群号", "群号：").toStdString();
+    try {
+        grpid_t grpid = boost::lexical_cast<grpid_t>(grpidIn.c_str(), grpidIn.size());
+        emit sigAllGrpMember(grpid);
+    } catch (boost::bad_lexical_cast& e) {
+        QMessageBox::information(this, "提示", QString("输入错误\n") + e.what());
+    }
 }
 
 void MainWindow::SetUserChatEditable(userid_t userid) {

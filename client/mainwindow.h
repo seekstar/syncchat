@@ -56,6 +56,8 @@ signals:
     void SendToGroup(grpid_t group, msgcontent_t content);
     void CreateGroup();
     void JoinGroup();
+    void sigAllGrps();
+    void sigAllGrpMember(grpid_t);
     void sigMoments();
     void sigFindByUsername();
 
@@ -63,6 +65,7 @@ private slots:
     void HandleItemClicked(QListWidgetItem *item);
     void Send();
     void HandleDeleteFriend();
+    void slotAllGrpMember();
 
 private:
     std::string content2str(msgcontent_t content);

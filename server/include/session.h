@@ -23,6 +23,7 @@ private:
     void handle_sslio_error(const boost::system::error_code& error);
     void SendType(transactionid_t tsid, S2C type);
     void SendType(S2C type);
+    void SendInfo(std::string info);
 
     void listen_signup_or_login();
     void listen_signup_or_login(const boost::system::error_code& error);
@@ -55,6 +56,8 @@ private:
     bool AddGroupMember(grpid_t grpid, userid_t userid);
     void HandleJoinGroup(const boost::system::error_code& error);
     void HandleGrpInfoReq(const boost::system::error_code& error);
+    void HandleAllGrps();
+    void HandleAllGrpMember(const boost::system::error_code& error);
     void HandleGrpMsg(const boost::system::error_code& error);
     void HandleGrpMsgContent(const boost::system::error_code& error);
 
