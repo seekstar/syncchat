@@ -14,7 +14,7 @@ extern _emptycout emptycout;
 
 #ifndef dbgcout
 #ifdef DEBUG
-#define dbgcout std::cout
+#define dbgcout std::cerr
 #else
 #define dbgcout emptycout
 #endif //DEBUG

@@ -156,3 +156,7 @@ void SslManager::HandleFindByUsernameReplyContent(const boost::system::error_cod
     emit FindByUsernameReply(res);
     ListenToServer();
 }
+
+void SslManager::PersonalInfo() {
+    SendLater(C2SHeaderBuf_noreply(C2S::STATISTICS));
+}

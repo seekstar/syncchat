@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>402</width>
+    <height>604</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,11 +18,25 @@
     <widget class="QListWidget" name="moments"/>
    </item>
    <item>
-    <widget class="QPushButton" name="btn_edit">
-     <property name="text">
-      <string>发朋友圈</string>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <property name="topMargin">
+      <number>0</number>
      </property>
-    </widget>
+     <item>
+      <widget class="QPushButton" name="btn_refresh">
+       <property name="text">
+        <string>刷新</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_edit">
+       <property name="text">
+        <string>发朋友圈</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
   </layout>
  </widget>

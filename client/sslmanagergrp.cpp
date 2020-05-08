@@ -70,6 +70,14 @@ void SslManager::HandleGrpInfoContent(const boost::system::error_code &error) {
     transactionGrp_.erase(it);
     ListenToServer();
 }
+
+void SslManager::ChangeGrpOwner(grpid_t grpid, userid_t userid) {
+    auto buf = C2SHeaderBuf_noreply(C2S::CHANGE_GROUP_OWNER);
+    PushBuf(buf, &grpid, sizeof(grpid));
+    PushBuf(buf, &userid, sizeof(userid));
+    SendLater(buf);
+}
+
 void SslManager::AllGrps() {
     SendLater(C2SHeaderBuf_noreply(C2S::ALL_GROUPS));
 }

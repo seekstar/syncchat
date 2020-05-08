@@ -50,7 +50,8 @@ SOURCES += ../src/*\
     dialogmoments.cpp \
     dialogeditmoment.cpp \
     sslmanagermoment.cpp \
-    dialogfindbyusername.cpp
+    dialogfindbyusername.cpp \
+    mycontent.cpp
 
 HEADERS  += ../include/*\
     mainwindow.h \
@@ -72,7 +73,8 @@ HEADERS  += ../include/*\
     dialogcomments.h \
     dialogmoments.h \
     dialogeditmoment.h \
-    dialogfindbyusername.h
+    dialogfindbyusername.h \
+    mycontent.h
 
 FORMS    += mainwindow.ui \
     winlogin.ui \

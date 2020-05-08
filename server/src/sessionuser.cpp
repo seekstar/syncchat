@@ -72,6 +72,29 @@ void session::HandleUserPublicInfoReq(const boost::system::error_code& error) {
     listen_request();
 }
 
+void session::HandleStatistics() {
+    if (odbc_exec(std::cerr, ("SELECT cnt FROM msgcnt WHERE sender = " + std::to_string(userid)).c_str())) {
+        reset();
+        return;
+    }
+    std::ostringstream disp;
+    uint64_t cnt;
+    SQLLEN length;
+    SQLBindCol(hstmt, 1, SQL_C_UBIGINT, &cnt, sizeof(cnt), &length);
+    disp << "发送的私聊消息总数：\n";
+    if (SQL_NO_DATA == SQLFetch(hstmt)) {
+        disp << '0';
+    } else {
+        disp << cnt;
+    }
+    if (odbc_close_cursor(std::cerr)) {
+        reset();
+        return;
+    }
+    SendInfo(disp.str());
+    listen_request();
+}
+
 void session::HandleFindByUsernameHeader(const boost::system::error_code& error) {
     HANDLE_ERROR;
     uint64_t len = *reinterpret_cast<uint64_t *>(buf_ + sizeof(C2SHeader));

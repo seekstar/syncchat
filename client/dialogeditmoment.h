@@ -3,7 +3,7 @@
 
 #include <QDialog>
 
-#include "clienttypes.h"
+#include "types.h"
 
 namespace Ui {
 class DialogEditMoment;
@@ -18,7 +18,7 @@ public:
     ~DialogEditMoment();
 
 signals:
-    void SendMoment(msgcontent_t content);
+    void SendMoment(CppContent content);
 
 private slots:
     void slotSendMoment();

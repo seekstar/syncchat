@@ -38,6 +38,7 @@ private:
     
     void HandleUserPrivateInfoReq();
     void HandleUserPublicInfoReq(const boost::system::error_code& error);
+    void HandleStatistics();
     void HandleFindByUsernameHeader(const boost::system::error_code& error);
     void HandleFindByUsernameContent(const boost::system::error_code& error);
     void HandleAddFriendReq(const boost::system::error_code& error);
@@ -56,10 +57,18 @@ private:
     bool AddGroupMember(grpid_t grpid, userid_t userid);
     void HandleJoinGroup(const boost::system::error_code& error);
     void HandleGrpInfoReq(const boost::system::error_code& error);
+    void HandleChangeGrpOwner(const boost::system::error_code& error);
     void HandleAllGrps();
     void HandleAllGrpMember(const boost::system::error_code& error);
     void HandleGrpMsg(const boost::system::error_code& error);
     void HandleGrpMsgContent(const boost::system::error_code& error);
+
+    void HandleMomentHeader(const boost::system::error_code& error);
+    void HandleMomentContent(const boost::system::error_code& error);
+    void HandleMomentsReq();
+    void HandleCommentHeader(const boost::system::error_code& error);
+    void HandleCommentContent(const boost::system::error_code& error);
+    void HandleCommentsReq(const boost::system::error_code& error);
 
     void reset();
     
@@ -86,7 +95,12 @@ private:
         sizeof(S2CHeader) + sizeof(CreateGroupReply),
         sizeof(C2SHeader) + sizeof(grpid_t), sizeof(S2CHeader) + sizeof(grpid_t), //Join group
         sizeof(S2CHeader) + sizeof(uint64_t) + MAX_GROUPNAME_LEN,       //GRP_INFO
-        sizeof(S2CHeader) + sizeof(S2CMsgGrpHeader) + MAX_CONTENT_LEN
+        sizeof(S2CHeader) + sizeof(S2CMsgGrpHeader) + MAX_CONTENT_LEN,
+        //sizeof(S2CHeader) + sizeof(uint64_t) moment main header
+        sizeof(MomentHeader) + MAX_CONTENT_LEN,
+        sizeof(C2SHeader) + sizeof(C2SCommentHeader),
+        sizeof(S2CHeader) + sizeof(CommentArrayHeader),
+        sizeof(CommentHeader) + MAX_CONTENT_LEN
     });
     uint8_t buf_[BUFSIZE];
     /*const static size_t SBUFSIZE = std::max({

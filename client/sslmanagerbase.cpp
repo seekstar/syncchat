@@ -155,6 +155,7 @@ void SslManager::sslconn() {
         delete context;
     }
     context = new context_t(boost::asio::ssl::context::sslv23);
+    system("pwd");
     context->load_verify_file("ca.pem");
     if (socket_) {
         delete socket_;

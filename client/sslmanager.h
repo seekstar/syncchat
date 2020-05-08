@@ -45,12 +45,15 @@ signals:
     void addFriendReq(userid_t userid, std::string username);
     void addFriendReply(userid_t userid, bool reply);
     void BeDeletedFriend(userid_t userid);
-    void PrivateMsgTooLong(userid_t userid, msgcontent_t content);
-    void PrivateMsgResponse(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime);
-    void PrivateMsg(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime);
+    void PrivateMsgTooLong(userid_t userid, CppContent content);
+    void PrivateMsgResponse(userid_t userid, CppContent content, msgid_t msgid, msgtime_t msgtime);
+    void PrivateMsg(userid_t userid, CppContent content, msgid_t msgid, msgtime_t msgtime);
     void NewGroup(grpid_t grpid, std::string grpname);
-    void GrpMsgResp(grpmsgid_t grpmsgid, msgtime_t msgtime, grpid_t grpid, msgcontent_t content);
-    void GrpMsg(grpmsgid_t grpmsgid, msgtime_t msgtime, userid_t sender, grpid_t grpid, msgcontent_t content);
+    void GrpMsgResp(grpmsgid_t grpmsgid, msgtime_t msgtime, grpid_t grpid, CppContent content);
+    void GrpMsg(grpmsgid_t grpmsgid, msgtime_t msgtime, userid_t sender, grpid_t grpid, CppContent content);
+
+    void Moments(std::vector<CppMoment>);
+    void Comments(momentid_t to, std::vector<CppComment>);
 
 public slots:
     void sslconn();
@@ -59,22 +62,27 @@ public slots:
     void login(struct LoginInfo loginInfo);
     void UserPrivateInfoReq();
     void UserPublicInfoReq(userid_t userid);
+    void PersonalInfo();
 
     void FindByUsername(std::string username);
     void AllFriendsReq();
     void AddFriend(userid_t userid);
     void ReplyAddFriend(userid_t userid, bool reply);
     void DeleteFriend(userid_t userid);
-    void SendToUser(userid_t userid, msgcontent_t content);
+    void SendToUser(userid_t userid, CppContent content);
 
     void CreateGroup(std::string groupname);
     void JoinGroup(grpid_t grpid);
     void GrpInfoReq(grpid_t grpid);
+    void ChangeGrpOwner(grpid_t, userid_t);
     void AllGrps();
     void AllGrpMember(grpid_t grpid);
-    void SendToGroup(grpid_t grpid, msgcontent_t content);
+    void SendToGroup(grpid_t grpid, CppContent content);
 
-    void SendMoment(msgcontent_t content);
+    void SendMoment(CppContent content);
+    void MomentsReq();
+    void SendComment(momentid_t to, commentid_t reply, CppContent content);
+    void CommentsReq(momentid_t to);
 
 private:
     //void run_io_service();
@@ -118,7 +126,7 @@ private:
     void HandleBeDeletedFriend(const boost::system::error_code& error);
 
     void HandleSendToUserResp();
-    void HandleSendToUserResp2(const boost::system::error_code& error, userid_t userid, msgcontent_t content);
+    void HandleSendToUserResp2(const boost::system::error_code& error, userid_t userid, CppContent content);
     void HandlePrivateMsgHeader(const boost::system::error_code& error);
     void HandlePrivateMsgContent(const boost::system::error_code& error);
 
@@ -130,6 +138,15 @@ private:
     void HandleGrpMsgReply(const boost::system::error_code& error);
     void HandleGrpMsgHeader(const boost::system::error_code& error);
     void HandleGrpMsgContent(const boost::system::error_code &error);
+
+    void HandleMomentsMainHeader(const boost::system::error_code &error);
+    void HandleMomentArray(uint64_t num);
+    void HandleMomentArray2(uint64_t num, const boost::system::error_code &error);
+    void HandleMomentArray3(uint64_t num, const boost::system::error_code &error);
+    void HandleCommentArrayHeader(const boost::system::error_code& error);
+    void HandleCommentArray(momentid_t to, uint64_t num);
+    void HandleCommentArrayElemHeader(momentid_t to, uint64_t num, const boost::system::error_code &error);
+    void HandleCommentArrayElemContent(momentid_t to, uint64_t num, const boost::system::error_code &error);
 
     io_service_t io_service;
     //std::unique_ptr<boost::asio::io_service::work> work;
@@ -150,7 +167,9 @@ private:
         sizeof(MsgS2CHeader) + MAX_CONTENT_LEN,
         sizeof(S2CHeader) + sizeof(CreateGroupReply),
         sizeof(S2CHeader) + sizeof(grpid_t),            //Join group reply
-        sizeof(S2CHeader) + sizeof(uint64_t) + MAX_GROUPNAME_LEN    //group info
+        sizeof(S2CHeader) + sizeof(uint64_t) + MAX_GROUPNAME_LEN,    //group info
+        sizeof(MomentHeader) + MAX_CONTENT_LEN,
+        sizeof(CommentArrayHeader)
     });
     uint8_t recvbuf_[RECVBUFSIZE];
     bool busy;
@@ -163,9 +182,11 @@ private:
     typedef std::unordered_map<transactionid_t, userid_t> TransactionUserMap;
     TransactionUserMap transactionUser_;
     //std::unordered_map<transactionid_t, std::string> transactionUsername_;
-    std::unordered_map<transactionid_t, msgcontent_t> transactionContent_;
+    std::unordered_map<transactionid_t, CppContent> transactionContent_;
     std::unordered_map<transactionid_t, grpid_t> transactionGrp_;
     std::unordered_map<transactionid_t, std::string> transactionGroupName_;
+    std::vector<CppMoment> moments_;
+    std::vector<CppComment> comments_;
 };
 
 #endif // SSLMANAGER_H

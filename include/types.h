@@ -2,6 +2,7 @@
 #define __TYPES_H__
 
 #include <cstdint>
+#include <vector>
 #include <openssl/sha.h>
 
 #include "mychrono.h"
@@ -21,6 +22,7 @@ enum class C2S : C2SBaseType {
     LOGOUT,
     USER_PUBLIC_INFO_REQ,   //username
     USER_PRIVATE_INFO_REQ,  //username, phone
+    STATISTICS,
     FIND_BY_USERNAME,
     ADD_FRIEND_REQ,
     ADD_FRIEND_REPLY,
@@ -32,6 +34,7 @@ enum class C2S : C2SBaseType {
     CREATE_GROUP,
     JOIN_GROUP,
     LEAVE_GROUP,
+    CHANGE_GROUP_OWNER,
     ALL_GROUPS,
     ALL_GROUP_MEMBER,
     ONLINE_GROUP_MEMBER,
@@ -39,6 +42,9 @@ enum class C2S : C2SBaseType {
     GRPMSG,
     GRPMSG_REQ,
     MOMENT,
+    MOMENTS_REQ,
+    COMMENT,
+    COMMENTS_REQ,
     P2PCONN
 };
 typedef uint32_t S2CBaseType;
@@ -85,6 +91,8 @@ enum class S2C : S2CBaseType {
     MSG,
     JOIN_GROUP_OK,
     GRPMSG,
+    MOMENTS,
+    COMMENTS,
     P2PCONN
 };
 
@@ -107,6 +115,7 @@ typedef uint64_t msgid_t;
 //group message id
 typedef uint64_t grpmsgid_t;
 typedef uint64_t momentid_t;
+typedef uint64_t commentid_t;
 
 typedef std::chrono::days::rep daystamp_t;          //4
 typedef std::chrono::milliseconds::rep msgtime_t;   //8
@@ -207,11 +216,59 @@ struct S2CMsgGrpHeader : S2CGrpMsgReply {
     uint64_t len;       //8
 };
 
-struct C2SMomentHeader {
+typedef std::vector<uint8_t> CppContent;
+struct CppMoment {
+    momentid_t id;
+    msgtime_t time;
+    userid_t sender;
+    CppContent content;
+    CppMoment(momentid_t _id, msgtime_t _time, userid_t _sender, CppContent _content)
+        : id(_id), time(_time), sender(_sender), content(_content)
+    {
+    }
+    bool operator < (const CppMoment& rhs) const {
+        return time < rhs.time;
+    }
+};
+
+struct MomentHeader {
+    momentid_t id;
+    msgtime_t time;
+    userid_t sender;
     uint64_t len;
 };
-struct S2CMomentReply {
-    
+
+struct C2SCommentHeader {
+    momentid_t to;
+    commentid_t reply;
+    uint64_t len;
+};
+struct CppComment {
+    commentid_t id;
+    msgtime_t time;
+    userid_t sender;
+    //momentid_t to;
+    commentid_t reply;
+    CppContent content;
+    CppComment(commentid_t _id, msgtime_t _time, userid_t _sender, commentid_t _reply, CppContent _content)
+        : id(_id), time(_time), sender(_sender), reply(_reply), content(_content)
+    {}
+    bool operator < (const CppComment& rhs) const {
+        return time < rhs.time;
+    }
+};
+
+struct CommentArrayHeader {
+    uint64_t num;
+    momentid_t to;
+};
+
+struct CommentHeader {
+    commentid_t id;
+    msgtime_t time;
+    userid_t sender;
+    uint64_t reply;
+    uint64_t len;
 };
 
 #endif	//__TYPES_H__

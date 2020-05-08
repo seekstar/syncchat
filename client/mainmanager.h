@@ -44,17 +44,17 @@ private slots:
     void HandleFriends(std::vector<userid_t> friends);
     void DeleteFriend(userid_t);
 
-    void HandlePrivateMsgResponse(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime);
-    void HandleReceivedPrivateMsg(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime);
+    void HandlePrivateMsgResponse(userid_t userid, CppContent content, msgid_t msgid, msgtime_t msgtime);
+    void HandleReceivedPrivateMsg(userid_t userid, CppContent content, msgid_t msgid, msgtime_t msgtime);
 
     void HandleNewGroup(grpid_t grpid, std::string grpname);
     //void HandleJoinGroup(grpid_t grpid);
-    void HandleGrpMsgResp(grpmsgid_t grpmsgid, msgtime_t msgtime, grpid_t grpid, msgcontent_t content);
-    void HandleReceivedGrpMsg(grpmsgid_t grpmsgid, msgtime_t msgtime, userid_t sender, grpid_t grpid, msgcontent_t content);
+    void HandleGrpMsgResp(grpmsgid_t grpmsgid, msgtime_t msgtime, grpid_t grpid, CppContent content);
+    void HandleReceivedGrpMsg(grpmsgid_t grpmsgid, msgtime_t msgtime, userid_t sender, grpid_t grpid, CppContent content);
 
 private:
-    bool WritePrivateMsgToDB(msgid_t msgid, msgtime_t msgtime, userid_t sender, userid_t touser, msgcontent_t content);
-    bool WriteGrpMsgToDB(grpmsgid_t grpmsgid, msgtime_t msgtime, userid_t sender, grpid_t grpid, msgcontent_t content);
+    bool WritePrivateMsgToDB(msgid_t msgid, msgtime_t msgtime, userid_t sender, userid_t touser, CppContent content);
+    bool WriteGrpMsgToDB(grpmsgid_t grpmsgid, msgtime_t msgtime, userid_t sender, grpid_t grpid, CppContent content);
 
     SslManager sslManager;
     DialogReconnect dialogReconnect;

@@ -5,6 +5,7 @@
 
 #include <iostream>
 
+#include "myglobal.h"
 #include "myodbc.h"
 #include "escape.h"
 
@@ -87,6 +88,7 @@ MainManager::MainManager(const char *ip, const char *port, QObject *parent)
     connect(&sslManager, &SslManager::NewGroup, this, &MainManager::HandleNewGroup);
     connect(&mainWindow, &MainWindow::JoinGroup, &dialogJoinGroup, &DialogJoinGroup::show);
     connect(&dialogJoinGroup, &DialogJoinGroup::JoinGroup, &sslManager, &SslManager::JoinGroup);    //reply is NewGroup
+    connect(&mainWindow, &MainWindow::ChangeGrpOwner, &sslManager, &SslManager::ChangeGrpOwner);
     connect(&mainWindow, &MainWindow::sigAllGrps, &sslManager, &SslManager::AllGrps);
     connect(&mainWindow, &MainWindow::sigAllGrpMember, &sslManager, &SslManager::AllGrpMember);
     //group message
@@ -94,9 +96,16 @@ MainManager::MainManager(const char *ip, const char *port, QObject *parent)
     connect(&sslManager, &SslManager::GrpMsgResp, this, &MainManager::HandleGrpMsgResp);
     connect(&sslManager, &SslManager::GrpMsg, this, &MainManager::HandleReceivedGrpMsg);
     //moments
-    connect(&mainWindow, &MainWindow::sigMoments, &dialogMoments, &DialogMoments::show);
+    connect(&mainWindow, &MainWindow::sigMoments, &dialogMoments, &DialogMoments::HandleShow);
     connect(&dialogMoments, &DialogMoments::sigEditMoment, &dialogEditMoment, &DialogEditMoment::show);
     connect(&dialogEditMoment, &DialogEditMoment::SendMoment, &sslManager, &SslManager::SendMoment);
+    connect(&dialogMoments, &DialogMoments::MomentsReq, &sslManager, &SslManager::MomentsReq);
+    connect(&sslManager, &SslManager::Moments, &dialogMoments, &DialogMoments::HandleMoments);
+    connect(&dialogMoments, &DialogMoments::Comment, &sslManager, &SslManager::SendComment);
+    connect(&dialogMoments, &DialogMoments::CommentsReq, &sslManager, &SslManager::CommentsReq);
+    connect(&sslManager, &SslManager::Comments, &dialogMoments, &DialogMoments::HandleComments);
+    //personal information
+    connect(&mainWindow, &MainWindow::sigPersonalInfo, &sslManager, &SslManager::PersonalInfo);
 
     sslManager.start();
     winLogin.show();
@@ -181,8 +190,8 @@ void MainManager::HandleAddFriendReply(userid_t userid, bool reply) {
     QMessageBox::information(NULL, "提示", "您与" + QString(std::to_string(userid).c_str()) + "成为好友了");
 }
 void MainManager::HandleNewFriend(userid_t userid) {
-    auto it = mainWindow.usernames.find(userid);
-    if (mainWindow.usernames.end() == it) {
+    auto it = usernames.find(userid);
+    if (usernames.end() == it) {
         emit UserPublicInfoReq(userid);
         exec_sql("INSERT INTO friends(userid) VALUES(" + std::to_string(userid) + ");", true);
         mainWindow.NewFriend(userid, std::to_string(userid));
@@ -195,7 +204,7 @@ void MainManager::HandleNewFriend(userid_t userid) {
 
 void MainManager::HandleUserPublicInfoReply(userid_t userid, std::string username) {
     exec_sql("UPDATE friends SET username = \"" + escape(username) + "\" WHERE userid = " + std::to_string(userid) + ';', true);
-    mainWindow.usernames[userid] = username;
+    usernames[userid] = username;
     qDebug() << "userid = " << userid << ", username = " << username.c_str();
     mainWindow.UpdateUsername(userid, username);
 }
@@ -220,17 +229,17 @@ void MainManager::DeleteFriend(userid_t userid) {
     }
 }
 
-void MainManager::HandlePrivateMsgResponse(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime) {
+void MainManager::HandlePrivateMsgResponse(userid_t userid, CppContent content, msgid_t msgid, msgtime_t msgtime) {
     mainWindow.HandlePrivateMsgResponse(userid, content, msgid, msgtime);
     WritePrivateMsgToDB(msgid, msgtime, mainWindow.myid, userid, content);
 }
 
-void MainManager::HandleReceivedPrivateMsg(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime) {
+void MainManager::HandleReceivedPrivateMsg(userid_t userid, CppContent content, msgid_t msgid, msgtime_t msgtime) {
     mainWindow.HandlePrivateMsg(userid, userid, content, msgid, msgtime);
     WritePrivateMsgToDB(msgid, msgtime, userid, mainWindow.myid, content);
 }
 
-bool MainManager::WritePrivateMsgToDB(msgid_t msgid, msgtime_t msgtime, userid_t sender, userid_t touser, msgcontent_t content) {
+bool MainManager::WritePrivateMsgToDB(msgid_t msgid, msgtime_t msgtime, userid_t sender, userid_t touser, CppContent content) {
     SQLLEN length = content.size();
     SQLRETURN retcode = SQLBindParameter(hstmt, 1, SQL_PARAM_INPUT, SQL_C_BINARY, SQL_BINARY, MAX_CONTENT_LEN,
                      0, content.data(), content.size(), &length);
@@ -247,19 +256,19 @@ void MainManager::HandleNewGroup(grpid_t grpid, std::string grpname) {
     mainWindow.NewGroup(grpid, grpname);
 }
 
-void MainManager::HandleGrpMsgResp(grpmsgid_t grpmsgid, msgtime_t msgtime, grpid_t grpid, msgcontent_t content) {
+void MainManager::HandleGrpMsgResp(grpmsgid_t grpmsgid, msgtime_t msgtime, grpid_t grpid, CppContent content) {
     mainWindow.HandleGrpMsgResp(grpmsgid, msgtime, grpid, content);
     WriteGrpMsgToDB(grpmsgid, msgtime, mainWindow.myid, grpid, content);
 }
 
 void MainManager::HandleReceivedGrpMsg(grpmsgid_t grpmsgid, msgtime_t msgtime, userid_t sender,
-                                       grpid_t grpid, msgcontent_t content)
+                                       grpid_t grpid, CppContent content)
 {
     mainWindow.HandleGrpMsg(grpmsgid, msgtime, sender, grpid, content);
     WriteGrpMsgToDB(grpmsgid, msgtime, sender, grpid, content);
 }
 
-bool MainManager::WriteGrpMsgToDB(msgid_t grpmsgid, msgtime_t msgtime, userid_t sender, userid_t grpid, msgcontent_t content) {
+bool MainManager::WriteGrpMsgToDB(msgid_t grpmsgid, msgtime_t msgtime, userid_t sender, userid_t grpid, CppContent content) {
     SQLLEN length = content.size();
     SQLRETURN retcode = SQLBindParameter(hstmt, 1, SQL_PARAM_INPUT, SQL_C_BINARY, SQL_BINARY, MAX_CONTENT_LEN,
                      0, content.data(), content.size(), &length);

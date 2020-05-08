@@ -1,6 +1,6 @@
 #include "sslmanagerbase.h"
 
-void SslManager::SendToUser(userid_t userid, msgcontent_t content) {
+void SslManager::SendToUser(userid_t userid, CppContent content) {
     qDebug() << __PRETTY_FUNCTION__;
     auto buf = C2SHeaderBuf(C2S::MSG);
     struct MsgC2SHeader header;
@@ -26,7 +26,7 @@ void SslManager::HandleSendToUserResp() {
         qDebug() << __PRETTY_FUNCTION__ << ": transaction id" << s2cHeader->tsid << "has no corresponding private message!";
         return;
     }
-    msgcontent_t content = itContent->second;
+    CppContent content = itContent->second;
     transactionContent_.erase(itContent);
     switch (s2cHeader->type) {
     case S2C::MSG_TOO_LONG:
@@ -43,7 +43,7 @@ void SslManager::HandleSendToUserResp() {
         break;
     }
 }
-void SslManager::HandleSendToUserResp2(const boost::system::error_code &error, userid_t userid, msgcontent_t content) {
+void SslManager::HandleSendToUserResp2(const boost::system::error_code &error, userid_t userid, CppContent content) {
     HANDLE_ERROR;
     auto msgS2CReply = reinterpret_cast<struct MsgS2CReply *>(recvbuf_);
     emit PrivateMsgResponse(userid, content, msgS2CReply->msgid, msgS2CReply->time);
@@ -61,7 +61,7 @@ void SslManager::HandlePrivateMsgContent(const boost::system::error_code &error)
     HANDLE_ERROR;
     auto msgS2CHeader = reinterpret_cast<MsgS2CHeader *>(recvbuf_);
     uint8_t *content = reinterpret_cast<uint8_t *>(msgS2CHeader + 1);
-    emit PrivateMsg(msgS2CHeader->from, msgcontent_t(content, content + msgS2CHeader->len),
+    emit PrivateMsg(msgS2CHeader->from, CppContent(content, content + msgS2CHeader->len),
                     msgS2CHeader->msgid, msgS2CHeader->time);
     ListenToServer();
 }

@@ -21,10 +21,12 @@ void SslIO::SendLater(const void *data, size_t len) {
         size_t oldsz = sendbuf.size();
         sendbuf.resize(oldsz + len);
         memcpy(sendbuf.data() + oldsz, data, len);
+        //dbgcout << "Now there are " << sendbuf.size() << " bytes in sendbuf\n";
     } else {
         sending.resize(len);
         memcpy(sending.data(), data, len);
         busy = true;
+        //dbgcout << "busy now\n";
         StartSend();
     }
 }
@@ -39,8 +41,10 @@ void SslIO::handle_send(const boost::system::error_code& error) {
         handle_sslio_error(error);
         return;
     }
+    //dbgcout << "Send done\n";
     sending.clear();
     if (sendbuf.empty()) {
+        //dbgcout << "free now\n";
         busy = false;
     } else {
         swap(sendbuf, sending);

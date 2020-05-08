@@ -1,6 +1,6 @@
 #include "sslmanagerbase.h"
 
-void SslManager::SendToGroup(grpid_t grpid, msgcontent_t content) {
+void SslManager::SendToGroup(grpid_t grpid, CppContent content) {
     qDebug() << __PRETTY_FUNCTION__;
     auto buf = C2SHeaderBuf(C2S::GRPMSG);
     struct C2SGrpMsgHeader c2sGroupMsgHeader;
@@ -41,6 +41,6 @@ void SslManager::HandleGrpMsgContent(const boost::system::error_code &error) {
     auto s2cMsgGrpHeader = reinterpret_cast<struct S2CMsgGrpHeader *>(recvbuf_);
     uint8_t *content = reinterpret_cast<uint8_t *>(s2cMsgGrpHeader + 1);
     emit GrpMsg(s2cMsgGrpHeader->grpmsgid, s2cMsgGrpHeader->time, s2cMsgGrpHeader->from,
-                s2cMsgGrpHeader->to, msgcontent_t(content, content + s2cMsgGrpHeader->len));
+                s2cMsgGrpHeader->to, CppContent(content, content + s2cMsgGrpHeader->len));
     ListenToServer();
 }

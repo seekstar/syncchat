@@ -9,7 +9,9 @@
 
 #include <boost/lexical_cast.hpp>
 
+#include "myglobal.h"
 #include "myodbc.h"
+#include "mycontent.h"
 
 constexpr int logoIndex = 0;
 constexpr int chatIndex = 1;
@@ -33,9 +35,11 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->btn_deleteFriend, &QPushButton::clicked, this, &MainWindow::HandleDeleteFriend);
     connect(ui->actionCreateGroup, &QAction::triggered, this, &MainWindow::CreateGroup);
     connect(ui->actionJoinGroup, &QAction::triggered, this, &MainWindow::JoinGroup);
+    connect(ui->actionManageGroup, &QAction::triggered, this, &MainWindow::slotManageGroup);
     connect(ui->actionAllGrps, &QAction::triggered, this, &MainWindow::sigAllGrps);
     connect(ui->actionAllGrpMember, &QAction::triggered, this, &MainWindow::slotAllGrpMember);
     connect(ui->actionMoments, &QAction::triggered, this, &MainWindow::sigMoments);
+    connect(ui->actionPersonalInfo, &QAction::triggered, this, &MainWindow::sigPersonalInfo);
 }
 
 void MainWindow::UpdatePrivateInfo(std::string username, std::string phone) {
@@ -72,7 +76,7 @@ void MainWindow::UpdateUsername(userid_t userid, std::string username) {
     it->second.item->setText(QString(username.c_str()));
 }
 
-void MainWindow::HandlePrivateMsgTooLong(userid_t userid, msgcontent_t content) {
+void MainWindow::HandlePrivateMsgTooLong(userid_t userid, CppContent content) {
     (void)content;
     auto it = usernames.find(userid);
     if (usernames.end() == it) {
@@ -84,16 +88,13 @@ void MainWindow::HandlePrivateMsgTooLong(userid_t userid, msgcontent_t content) 
     }
     SetUserChatEditable(userid);
 }
-void MainWindow::HandlePrivateMsgResponse(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime) {
+void MainWindow::HandlePrivateMsgResponse(userid_t userid, CppContent content, msgid_t msgid, msgtime_t msgtime) {
     HandlePrivateMsg(userid, myid, content, msgid, msgtime);
     ClearUserChatEdit(userid);
     SetUserChatEditable(userid);
 }
 
-std::string MainWindow::content2str(msgcontent_t content) {
-    return std::string((const char*)content.data(), content.size());
-}
-void MainWindow::HandlePrivateMsg(userid_t frd, userid_t sender, msgcontent_t content, msgid_t msgid, msgtime_t time) {
+void MainWindow::HandlePrivateMsg(userid_t frd, userid_t sender, CppContent content, msgid_t msgid, msgtime_t time) {
     (void)msgid;
     std::string disp = GenContentDisp(sender, time, content);
     if (curIsUser_ && curUser_ == frd) {
@@ -118,13 +119,13 @@ void MainWindow::NewGroup(grpid_t grpid, std::__cxx11::string grpname) {
     itemGrp_[item] = grpid;
 }
 
-void MainWindow::HandleGrpMsgResp(grpmsgid_t grpmsgid, msgtime_t msgtime, grpid_t grpid, msgcontent_t content) {
+void MainWindow::HandleGrpMsgResp(grpmsgid_t grpmsgid, msgtime_t msgtime, grpid_t grpid, CppContent content) {
     qDebug() << __PRETTY_FUNCTION__;
     HandleGrpMsg(grpmsgid, msgtime, myid, grpid, content);
     ClearGrpChatEdit(grpid);
     SetGrpChatEditable(grpid);
 }
-void MainWindow::HandleGrpMsg(grpmsgid_t grpmsgid, msgtime_t time, userid_t sender, grpid_t grpid, msgcontent_t content) {
+void MainWindow::HandleGrpMsg(grpmsgid_t grpmsgid, msgtime_t time, userid_t sender, grpid_t grpid, CppContent content) {
     qDebug() << __PRETTY_FUNCTION__;
     (void)grpmsgid;
     std::string disp = GenContentDisp(sender, time, content);
@@ -187,13 +188,13 @@ void MainWindow::HandleItemClicked(QListWidgetItem *item) {
     }
 }
 
-msgcontent_t MainWindow::GetContentByInput(std::string in) {
-    return msgcontent_t(in.c_str(), in.c_str() + in.length());
+CppContent MainWindow::GetContentByInput(std::string in) {
+    return CppContent(in.c_str(), in.c_str() + in.length());
 }
 
 void MainWindow::Send() {
     ui->textEdit->setReadOnly(true);
-    msgcontent_t content = GetContentByInput(ui->textEdit->toPlainText().toStdString());
+    CppContent content = GetContentByInput(ui->textEdit->toPlainText().toStdString());
     if (curIsUser_) {
         emit SendToUser(curUser_, content);
     } else {
@@ -216,6 +217,26 @@ void MainWindow::DeleteFriend(userid_t userid) {
         ui->stackedWidget_chat->setCurrentIndex(logoIndex);
     }
     QMessageBox::information(this, "提示", QString(("成功与用户" + std::to_string(userid) + "解除好友关系").c_str()));
+}
+
+void MainWindow::slotManageGroup() {
+    std::string grpidIn = QInputDialog::getText(this, "请输入群号", "群号：").toStdString();
+    grpid_t grpid;
+    try {
+        grpid = boost::lexical_cast<grpid_t>(grpidIn.c_str(), grpidIn.size());
+    } catch (boost::bad_lexical_cast& e) {
+        QMessageBox::information(this, "提示", QString("输入错误\n") + e.what());
+        return;
+    }
+    std::string useridIn = QInputDialog::getText(this, "请输入新群主账号", "账号：").toStdString();
+    userid_t userid;
+    try {
+        userid = boost::lexical_cast<userid_t>(useridIn.c_str(), useridIn.size());
+    } catch (boost::bad_lexical_cast& e) {
+        QMessageBox::information(this, "提示", QString("输入错误\n") + e.what());
+        return;
+    }
+    emit ChangeGrpOwner(grpid, userid);
 }
 
 void MainWindow::slotAllGrpMember() {
@@ -276,21 +297,6 @@ void MainWindow::ClearGrpChatEdit(grpid_t grpid) {
         }
         it->second.textEdit.clear();
     }
-}
-std::string MainWindow::GenContentDisp(userid_t sender, msgtime_t time, msgcontent_t content) {
-    time_t tt = time / 1000;
-    std::tm *now = std::localtime(&tt);
-    std::ostringstream disp;
-    disp << '\n';
-    auto it = usernames.find(sender);
-    if (usernames.end() == it) {
-        disp << sender;
-    } else {
-        disp << it->second << '(' << sender << ')';
-    }
-    disp << "  " << (now->tm_year + 1900) << '-' << now->tm_mon << '-' << now->tm_mday << ' '
-         << now->tm_hour << ':' << now->tm_min << ':' << now->tm_sec << std::endl << content2str(content);
-    return disp.str();
 }
 
 MainWindow::~MainWindow()

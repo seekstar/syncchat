@@ -52,6 +52,16 @@ void SslManager::HandleS2CHeader(const boost::system::error_code& error) {
                 boost::asio::buffer(recvbuf_, sizeof(S2CMsgGrpHeader)),
                 boost::bind(&SslManager::HandleGrpMsgHeader, this, boost::asio::placeholders::error));
             break;
+        case S2C::MOMENTS:
+            boost::asio::async_read(*socket_,
+                boost::asio::buffer(recvbuf_, sizeof(uint64_t)),
+                boost::bind(&SslManager::HandleMomentsMainHeader, this, boost::asio::placeholders::error));
+            break;
+        case S2C::COMMENTS:
+            boost::asio::async_read(*socket_,
+                boost::asio::buffer(recvbuf_, sizeof(CommentArrayHeader)),
+                boost::bind(&SslManager::HandleCommentArrayHeader, this, boost::asio::placeholders::error));
+            break;
         default:
             qWarning() << "Unexpected type in " << __PRETTY_FUNCTION__ << ": " << (S2CBaseType)s2cHeader->type;
             break;

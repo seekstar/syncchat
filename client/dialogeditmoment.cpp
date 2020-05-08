@@ -11,8 +11,8 @@ DialogEditMoment::DialogEditMoment(QWidget *parent) :
     connect(ui->btn_send, &QPushButton::clicked, this, &DialogEditMoment::slotSendMoment);
 }
 
-msgcontent_t Input2Content(std::string in) {
-    return msgcontent_t(in.c_str(), in.c_str() + in.length());
+CppContent Input2Content(std::string in) {
+    return CppContent(in.c_str(), in.c_str() + in.length());
 }
 
 void DialogEditMoment::slotSendMoment() {

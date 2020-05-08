@@ -17,6 +17,7 @@ void InitDB(std::ostream& err) {
         "salt BINARY(32) COMMENT '密码盐值',"
         "pw BINARY(32) COMMENT '密码的哈希值加盐再哈希的值'"
     ");");
+    odbc_exec(err, "CREATE INDEX usernameindex ON user(username(100));");
     odbc_exec(err,
         "CREATE PROCEDURE insert_user(OUT userid BIGINT UNSIGNED, IN signuptime INT, IN username CHAR(100), IN phone CHAR(28), salt BINARY(32), pw BINARY(32))\n"
         "BEGIN\n"
@@ -40,11 +41,13 @@ void InitDB(std::ostream& err) {
         "FOREIGN KEY msg_sender_foreign(sender) REFERENCES user(userid),"
         "FOREIGN KEY msg_touser_foreign(touser) REFERENCES user(userid)"
     ");");
+    odbc_exec(err, "CREATE VIEW msgcnt AS SELECT sender, count(*) cnt FROM msg GROUP BY sender;");
     odbc_exec(err, "CREATE PROCEDURE insert_msg(OUT msgid BIGINT UNSIGNED, IN msgtime BIGINT, IN sender BIGINT UNSIGNED, IN touser BIGINT UNSIGNED, IN content BLOB(2000))\n"
         "BEGIN\n"
             "INSERT INTO msg(msgtime, sender, touser, content) VALUES(msgtime, sender, touser, content);\n"
             "SET msgid = LAST_INSERT_ID();\n"
         "END");
+    odbc_exec(err, "CREATE VIEW msgcnt AS SELECT sender, count(*) cnt FROM msg GROUP BY sender;");
     odbc_exec(err, "CREATE TABLE grp ("
         "grpid BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,"
         "createtime INT NOT NULL,"
@@ -89,23 +92,25 @@ void InitDB(std::ostream& err) {
     "    FOREIGN KEY moment_sender_foreign(sender) REFERENCES user(userid),"
     "    FOREIGN KEY moment_ori_foreign(ori) REFERENCES moment(id)"
     ");");
-    odbc_exec(err, "CREATE PROCEDURE insert_moment(OUT id BIGINT UNSIGNED, IN time BIGINT, IN sender BIGINT UNSIGNED, IN ori BIGINT UNSIGNED, IN content BLOB(2000))\n"
-        "BEGIN\n"
-            "INSERT INTO moment(time, sender, ori, content) VALUES(time, sender, ori, content);\n"
-            "SET id = LAST_INSERT_ID();\n"
-        "END");
+    // odbc_exec(err, "CREATE PROCEDURE insert_moment(OUT id BIGINT UNSIGNED, IN time BIGINT, IN sender BIGINT UNSIGNED, IN ori BIGINT UNSIGNED, IN content BLOB(2000))\n"
+    //     "BEGIN\n"
+    //         "INSERT INTO moment(time, sender, ori, content) VALUES(time, sender, ori, content);\n"
+    //         "SET id = LAST_INSERT_ID();\n"
+    //     "END");
     odbc_exec(err, "CREATE TABLE comment ("
     "    id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,"
     "    time BIGINT NOT NULL,"
     "    sender BIGINT UNSIGNED NOT NULL,"
+    "    tommt BIGINT UNSIGNED NOT NULL COMMENT '(to moment)朋友圈id',"
     "    reply BIGINT UNSIGNED,"
     "    content BLOB(2000) NOT NULL,"
     "    FOREIGN KEY sender_foreign(sender) REFERENCES user(userid),        "
     "    FOREIGN KEY reply_foreign(reply) REFERENCES comment(id)"
     ");");
-    odbc_exec(err, "CREATE PROCEDURE insert_comment(OUT id BIGINT UNSIGNED, IN time BIGINT, IN sender BIGINT UNSIGNED, IN reply BIGINT UNSIGNED, IN content BLOB(2000))\n"
-        "BEGIN\n"
-            "INSERT INTO comment(time, sender, reply, content) VALUES(time, sender, reply, content);\n"
-            "SET id = LAST_INSERT_ID();\n"
-        "END");
+    odbc_exec(err, "CREATE INDEX comment_sender_index ON comment(sender);");
+    // odbc_exec(err, "CREATE PROCEDURE insert_comment(OUT id BIGINT UNSIGNED, IN time BIGINT, IN sender BIGINT UNSIGNED, IN reply BIGINT UNSIGNED, IN content BLOB(2000))\n"
+    //     "BEGIN\n"
+    //         "INSERT INTO comment(time, sender, reply, content) VALUES(time, sender, reply, content);\n"
+    //         "SET id = LAST_INSERT_ID();\n"
+    //     "END");
 }

@@ -33,6 +33,9 @@ void session::handle_request(const boost::system::error_code& error) {
             boost::asio::buffer(buf_ + sizeof(C2SHeader), sizeof(userid_t)),
             boost::bind(&session::HandleUserPublicInfoReq, this, boost::asio::placeholders::error));
         break;
+    case C2S::STATISTICS:
+        HandleStatistics();
+        break;
     case C2S::FIND_BY_USERNAME:
         boost::asio::async_read(socket_,
             boost::asio::buffer(buf_ + sizeof(C2SHeader), sizeof(uint64_t)),
@@ -76,6 +79,11 @@ void session::handle_request(const boost::system::error_code& error) {
             boost::asio::buffer(buf_ + sizeof(C2SHeader), sizeof(grpid_t)),
             boost::bind(&session::HandleGrpInfoReq, this, boost::asio::placeholders::error));
         break;
+    case C2S::CHANGE_GROUP_OWNER:
+        boost::asio::async_read(socket_,
+            boost::asio::buffer(buf_, sizeof(grpid_t) + sizeof(userid_t)),
+            boost::bind(&session::HandleChangeGrpOwner, this, boost::asio::placeholders::error));
+        break;
     case C2S::ALL_GROUPS:
         HandleAllGrps();
         break;
@@ -89,6 +97,24 @@ void session::handle_request(const boost::system::error_code& error) {
             boost::asio::buffer(buf_ + sizeof(C2SHeader) + sizeof(S2CGrpMsgReply) + sizeof(userid_t), 
                 sizeof(C2SGrpMsgHeader)),
             boost::bind(&session::HandleGrpMsg, this, boost::asio::placeholders::error));
+        break;
+    case C2S::MOMENT:
+        boost::asio::async_read(socket_,
+            boost::asio::buffer(buf_, sizeof(uint64_t)),
+            boost::bind(&session::HandleMomentHeader, this, boost::asio::placeholders::error));
+        break;
+    case C2S::MOMENTS_REQ:
+        HandleMomentsReq();
+        break;
+    case C2S::COMMENT:
+        boost::asio::async_read(socket_,
+            boost::asio::buffer(buf_, sizeof(C2SCommentHeader)),
+            boost::bind(&session::HandleCommentHeader, this, boost::asio::placeholders::error));
+        break;
+    case C2S::COMMENTS_REQ:
+        boost::asio::async_read(socket_,
+            boost::asio::buffer(buf_, sizeof(momentid_t)),
+            boost::bind(&session::HandleCommentsReq, this, boost::asio::placeholders::error));
         break;
     default:
         dbgcout << "Warning in " << __PRETTY_FUNCTION__ << ": Unexpected request type " << 

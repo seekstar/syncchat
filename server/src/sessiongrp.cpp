@@ -105,6 +105,19 @@ void session::HandleGrpInfoReq(const boost::system::error_code& error) {
     listen_request();
 }
 
+void session::HandleChangeGrpOwner(const boost::system::error_code& error) {
+    HANDLE_ERROR;
+    grpid_t grpid = *reinterpret_cast<grpid_t *>(buf_);
+    userid_t userid = *reinterpret_cast<userid_t *>(buf_ + sizeof(grpid_t));
+    std::ostringstream err;
+    if (odbc_exec(err, (
+        "UPDATE grp SET grpowner = " + std::to_string(userid) + " WHERE grpid = " + std::to_string(grpid) + ';'
+    ).c_str())) {
+        SendInfo(err.str());
+    }
+    listen_request();
+}
+
 void session::HandleAllGrps() {
     if (odbc_exec(std::cerr, (
         "SELECT grpid, grpname, grpowner FROM grpmember NATURAL JOIN grp WHERE userid = " + 
