@@ -37,6 +37,8 @@ private:
     
     void HandleUserPrivateInfoReq();
     void HandleUserPublicInfoReq(const boost::system::error_code& error);
+    void HandleFindByUsernameHeader(const boost::system::error_code& error);
+    void HandleFindByUsernameContent(const boost::system::error_code& error);
     void HandleAddFriendReq(const boost::system::error_code& error);
     void HandleAddFriendReply(const boost::system::error_code& error);
     void HandleDeleteFriend(const boost::system::error_code& error);
@@ -50,6 +52,7 @@ private:
 
     void HandleCreateGroupHeader(const boost::system::error_code& error);
     void HandleCreateGroupName(const boost::system::error_code& error);
+    bool AddGroupMember(grpid_t grpid, userid_t userid);
     void HandleJoinGroup(const boost::system::error_code& error);
     void HandleGrpInfoReq(const boost::system::error_code& error);
     void HandleGrpMsg(const boost::system::error_code& error);

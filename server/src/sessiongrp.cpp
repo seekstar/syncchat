@@ -33,6 +33,9 @@ void session::HandleCreateGroupName(const boost::system::error_code& error) {
         //listen_signup_or_login();
         return;
     }
+    if (AddGroupMember(groupid, userid)) {
+        return;
+    }
 
     auto s2cHeader = reinterpret_cast<struct S2CHeader *>(buf_);
     auto createGroupReply = reinterpret_cast<struct CreateGroupReply *>(s2cHeader + 1);
@@ -43,15 +46,21 @@ void session::HandleCreateGroupName(const boost::system::error_code& error) {
     SendLater(buf_, sizeof(S2CHeader) + sizeof(CreateGroupReply));
     listen_request();
 }
-void session::HandleJoinGroup(const boost::system::error_code& error) {
-    HANDLE_ERROR;
-    grpid_t grpid = *reinterpret_cast<grpid_t *>(buf_);
+bool session::AddGroupMember(grpid_t grpid, userid_t userid) {
     if (odbc_exec(std::cerr, ("INSERT INTO grpmember(grpid, userid) VALUES(" + std::to_string(grpid) + ',' +
         std::to_string(userid) + ");"
     ).c_str())) {
         //TODO: send ALREADY_GROUP_MEMBER
         dbgcout << "Already a member of group " << grpid << ", ignore it\n";
         listen_request();
+        return true;
+    }
+    return false;
+}
+void session::HandleJoinGroup(const boost::system::error_code& error) {
+    HANDLE_ERROR;
+    grpid_t grpid = *reinterpret_cast<grpid_t *>(buf_);
+    if (AddGroupMember(grpid, userid)) {
         return;
     }
 
@@ -93,4 +102,5 @@ void session::HandleGrpInfoReq(const boost::system::error_code& error) {
     //tsid is already in place
     s2cHeader->type = S2C::GRP_INFO;
     SendLater(buf_, sizeof(S2CHeader) + sizeof(uint64_t) + length);
+    listen_request();
 }

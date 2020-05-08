@@ -42,7 +42,15 @@ SOURCES += ../src/*\
     sslmanageruser.cpp \
     sslmanagerfriend.cpp \
     sslmanagermsg.cpp \
-    sslmanagergrp.cpp
+    sslmanagergrp.cpp \
+    sslmanagergrpmsg.cpp \
+    widgetmoment.cpp \
+    widgetcomment.cpp \
+    dialogcomments.cpp \
+    dialogmoments.cpp \
+    dialogeditmoment.cpp \
+    sslmanagermoment.cpp \
+    dialogfindbyusername.cpp
 
 HEADERS  += ../include/*\
     mainwindow.h \
@@ -58,7 +66,13 @@ HEADERS  += ../include/*\
     clienttypes.h \
     dialogcreategroup.h \
     dialogjoingroup.h \
-    sslmanagerbase.h
+    sslmanagerbase.h \
+    widgetmoment.h \
+    widgetcomment.h \
+    dialogcomments.h \
+    dialogmoments.h \
+    dialogeditmoment.h \
+    dialogfindbyusername.h
 
 FORMS    += mainwindow.ui \
     winlogin.ui \
@@ -66,7 +80,13 @@ FORMS    += mainwindow.ui \
     dialogreconnect.ui \
     dialogaddfriend.ui \
     dialogcreategroup.ui \
-    dialogjoingroup.ui
+    dialogjoingroup.ui \
+    widgetmoment.ui \
+    widgetcomment.ui \
+    dialogcomments.ui \
+    dialogmoments.ui \
+    dialogeditmoment.ui \
+    dialogfindbyusername.ui
 
 win32 {
     DEFINES  -= UNICODE

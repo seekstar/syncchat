@@ -5,12 +5,15 @@
 #include <QDebug>
 
 #include "dialogreconnect.h"
+#include "dialogfindbyusername.h"
 #include "dialogaddfriend.h"
 #include "sslmanager.h"
 #include "winlogin.h"
 #include "mainwindow.h"
 #include "dialogcreategroup.h"
 #include "dialogjoingroup.h"
+#include "dialogmoments.h"
+#include "dialogeditmoment.h"
 
 #include <unordered_map>
 
@@ -43,21 +46,28 @@ private slots:
 
     void HandlePrivateMsgResponse(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime);
     void HandleReceivedPrivateMsg(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime);
-    bool WritePrivateMsgToDB(msgid_t msgid, msgtime_t msgtime, userid_t sender, userid_t touser, msgcontent_t content);
 
     void HandleNewGroup(grpid_t grpid, std::string grpname);
     //void HandleJoinGroup(grpid_t grpid);
+    void HandleGrpMsgResp(grpmsgid_t grpmsgid, msgtime_t msgtime, grpid_t grpid, msgcontent_t content);
+    void HandleReceivedGrpMsg(grpmsgid_t grpmsgid, msgtime_t msgtime, userid_t sender, grpid_t grpid, msgcontent_t content);
 
 private:
+    bool WritePrivateMsgToDB(msgid_t msgid, msgtime_t msgtime, userid_t sender, userid_t touser, msgcontent_t content);
+    bool WriteGrpMsgToDB(grpmsgid_t grpmsgid, msgtime_t msgtime, userid_t sender, grpid_t grpid, msgcontent_t content);
+
     SslManager sslManager;
     DialogReconnect dialogReconnect;
 
     DialogSignup dialogSignup;
     WinLogin winLogin;
     MainWindow mainWindow;
+    DialogFindByUsername dialogFindByUsername;
     DialogAddFriend dialogAddFriend;
     DialogCreateGroup dialogCreateGroup;
     DialogJoinGroup dialogJoinGroup;
+    DialogMoments dialogMoments;
+    DialogEditMoment dialogEditMoment;
 };
 
 #endif // MAINMANAGER_H

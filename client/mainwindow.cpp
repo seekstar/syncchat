@@ -23,12 +23,14 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->stackedWidget_chat->setCurrentIndex(logoIndex);
     ui->textEdit->setReadOnly(true);
     //ui->textEdit->setText("点击左边的好友发送消息");
+    connect(ui->actionFindByUsername, &QAction::triggered, this, &MainWindow::sigFindByUsername);
     connect(ui->actionAddFriend, &QAction::triggered, this, &MainWindow::AddFriend);
     connect(ui->btn_send, &QPushButton::clicked, this, &MainWindow::Send);
     connect(ui->chats, &QListWidget::itemClicked, this, &MainWindow::HandleItemClicked);
     connect(ui->btn_deleteFriend, &QPushButton::clicked, this, &MainWindow::HandleDeleteFriend);
     connect(ui->actionCreateGroup, &QAction::triggered, this, &MainWindow::CreateGroup);
     connect(ui->actionJoinGroup, &QAction::triggered, this, &MainWindow::JoinGroup);
+    connect(ui->actionMoments, &QAction::triggered, this, &MainWindow::sigMoments);
 }
 
 void MainWindow::UpdatePrivateInfo(std::string username, std::string phone) {
@@ -37,6 +39,14 @@ void MainWindow::UpdatePrivateInfo(std::string username, std::string phone) {
     myPhone = phone;
     usernames[myid] = username;
     setWindowTitle(QString((myUsername + "(账号:" + std::to_string(myid) + ')').c_str()));
+}
+
+void MainWindow::HandleFindByUsernameReply(std::vector<userid_t> res) {
+    std::ostringstream disp;
+    for (userid_t userid : res) {
+        disp << userid << '\n';
+    }
+    QMessageBox::information(this, "查询结果", QString(disp.str().c_str()));
 }
 
 void MainWindow::NewFriend(userid_t userid, std::string username) {
@@ -72,6 +82,7 @@ void MainWindow::HandlePrivateMsgTooLong(userid_t userid, msgcontent_t content) 
 void MainWindow::HandlePrivateMsgResponse(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime) {
     HandlePrivateMsg(userid, myid, content, msgid, msgtime);
     ClearUserChatEdit(userid);
+    SetUserChatEditable(userid);
 }
 
 std::string MainWindow::content2str(msgcontent_t content) {
@@ -79,27 +90,16 @@ std::string MainWindow::content2str(msgcontent_t content) {
 }
 void MainWindow::HandlePrivateMsg(userid_t frd, userid_t sender, msgcontent_t content, msgid_t msgid, msgtime_t time) {
     (void)msgid;
-    time_t tt = time / 1000;
-    std::tm *now = std::localtime(&tt);
-    std::ostringstream disp;
-    disp << '\n';
-    auto it = usernames.find(sender);
-    if (usernames.end() == it) {
-        disp << sender;
-    } else {
-        disp << it->second;
-    }
-    disp << "  " << (now->tm_year + 1900) << '-' << now->tm_mon << '-' << now->tm_mday << ' '
-         << now->tm_hour << ':' << now->tm_min << ':' << now->tm_sec << std::endl << content2str(content);
+    std::string disp = GenContentDisp(sender, time, content);
     if (curIsUser_ && curUser_ == frd) {
-        ui->textBrowser->append(disp.str().c_str());
+        ui->textBrowser->append(disp.c_str());
     } else {
         auto it = userChatInfo.find(frd);
         if (userChatInfo.end() == it) {
             qDebug() << "Warning in" << __PRETTY_FUNCTION__ << ": user" << frd << "has no corresponding chat";
             return;
         }
-        it->second.textBrowser.append(disp.str().c_str());
+        it->second.textBrowser.append(disp.c_str());
     }
 }
 
@@ -111,6 +111,28 @@ void MainWindow::NewGroup(grpid_t grpid, std::__cxx11::string grpname) {
     itemIsUser_[item] = false;
     grpChatInfo[grpid] = {item, "", "", false};
     itemGrp_[item] = grpid;
+}
+
+void MainWindow::HandleGrpMsgResp(grpmsgid_t grpmsgid, msgtime_t msgtime, grpid_t grpid, msgcontent_t content) {
+    qDebug() << __PRETTY_FUNCTION__;
+    HandleGrpMsg(grpmsgid, msgtime, myid, grpid, content);
+    ClearGrpChatEdit(grpid);
+    SetGrpChatEditable(grpid);
+}
+void MainWindow::HandleGrpMsg(grpmsgid_t grpmsgid, msgtime_t time, userid_t sender, grpid_t grpid, msgcontent_t content) {
+    qDebug() << __PRETTY_FUNCTION__;
+    (void)grpmsgid;
+    std::string disp = GenContentDisp(sender, time, content);
+    if (!curIsUser_ && curGrp_ == grpid) {
+        ui->textBrowser->append(disp.c_str());
+    } else {
+        auto it = grpChatInfo.find(grpid);
+        if (userChatInfo.end() == it) {
+            qDebug() << "Warning in" << __PRETTY_FUNCTION__ << ": group" << grpid << "has no corresponding chat";
+            return;
+        }
+        it->second.textBrowser.append(disp.c_str());
+    }
 }
 
 void MainWindow::HandleItemClicked(QListWidgetItem *item) {
@@ -145,6 +167,7 @@ void MainWindow::HandleItemClicked(QListWidgetItem *item) {
         ui->textBrowser->setPlainText(it->second.textBrowser);
         ui->textEdit->setPlainText(it->second.textEdit);
         ui->textEdit->setReadOnly(it->second.readonly);
+        ui->btn_send->setEnabled(!it->second.readonly);
     } else {
         curGrp_ = itemGrp_[item];
         auto it = grpChatInfo.find(curGrp_);
@@ -155,6 +178,7 @@ void MainWindow::HandleItemClicked(QListWidgetItem *item) {
         ui->textBrowser->setPlainText(it->second.textBrowser);
         ui->textEdit->setPlainText(it->second.textEdit);
         ui->textEdit->setReadOnly(it->second.readonly);
+        ui->btn_send->setEnabled(!it->second.readonly);
     }
 }
 
@@ -212,7 +236,46 @@ void MainWindow::ClearUserChatEdit(userid_t userid) {
         }
         it->second.textEdit = "";
     }
-    SetUserChatEditable(userid);
+}
+
+void MainWindow::SetGrpChatEditable(userid_t grpid) {
+    if (!curIsUser_ && curGrp_ == grpid) {
+        ui->textEdit->setReadOnly(false);
+    } else {
+        auto it = grpChatInfo.find(grpid);
+        if (grpChatInfo.end() == it) {
+            qDebug() << "Error in" << __PRETTY_FUNCTION__ << ": Group " << grpid << " has no corresponding chat";
+            return;
+        }
+        it->second.readonly = false;
+    }
+}
+void MainWindow::ClearGrpChatEdit(grpid_t grpid) {
+    if (!curIsUser_ && curGrp_ == grpid) {
+        ui->textEdit->clear();
+    } else {
+        auto it = grpChatInfo.find(grpid);
+        if (grpChatInfo.end() == it) {
+            qDebug() << "Error in" << __PRETTY_FUNCTION__ << ": Group " << grpid << " has no corresponding chat";
+            return;
+        }
+        it->second.textEdit.clear();
+    }
+}
+std::string MainWindow::GenContentDisp(userid_t sender, msgtime_t time, msgcontent_t content) {
+    time_t tt = time / 1000;
+    std::tm *now = std::localtime(&tt);
+    std::ostringstream disp;
+    disp << '\n';
+    auto it = usernames.find(sender);
+    if (usernames.end() == it) {
+        disp << sender;
+    } else {
+        disp << it->second << '(' << sender << ')';
+    }
+    disp << "  " << (now->tm_year + 1900) << '-' << now->tm_mon << '-' << now->tm_mday << ' '
+         << now->tm_hour << ':' << now->tm_min << ':' << now->tm_sec << std::endl << content2str(content);
+    return disp.str();
 }
 
 MainWindow::~MainWindow()

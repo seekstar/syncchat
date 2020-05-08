@@ -33,6 +33,11 @@ void session::handle_request(const boost::system::error_code& error) {
             boost::asio::buffer(buf_ + sizeof(C2SHeader), sizeof(userid_t)),
             boost::bind(&session::HandleUserPublicInfoReq, this, boost::asio::placeholders::error));
         break;
+    case C2S::FIND_BY_USERNAME:
+        boost::asio::async_read(socket_,
+            boost::asio::buffer(buf_ + sizeof(C2SHeader), sizeof(uint64_t)),
+            boost::bind(&session::HandleFindByUsernameHeader, this, boost::asio::placeholders::error));
+        break;
     case C2S::ADD_FRIEND_REQ:
         boost::asio::async_read(socket_,
             boost::asio::buffer(buf_ + sizeof(C2SHeader), sizeof(C2SAddFriendReq)),

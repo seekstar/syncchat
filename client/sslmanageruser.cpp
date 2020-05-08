@@ -50,6 +50,9 @@ void SslManager::HandleLoginReply() {
         //qDebug() << "Warning: ALREADY_LOGINED";
         emit alreadyLogined();
         break;
+    case S2C::NO_SUCH_USER:
+        emit noSuchUser();
+        break;
     case S2C::WRONG_PASSWORD:
         emit wrongPassword();
         break;
@@ -117,5 +120,39 @@ void SslManager::HandleUserPublicInfoContent(const boost::system::error_code& er
         emit UserPublicInfoReply(it->second, std::string(username, userPublicInfoHeader->nameLen));
         transactionUser_.erase(it);
     }
+    ListenToServer();
+}
+
+void SslManager::FindByUsername(std::__cxx11::string username) {
+    auto buf = C2SHeaderBuf(C2S::FIND_BY_USERNAME);
+    uint64_t len = username.length();
+    PushBuf(buf, &len, sizeof(len));
+    PushBuf(buf, username.c_str(), username.length());
+    SendLater(buf);
+    //transactionUsername_[last_tsid] = username;
+}
+void SslManager::HandleFindByUsernameReplyHeader(const boost::system::error_code &error) {
+    HANDLE_ERROR;
+    //TODO: Handle recvbuf not long enough
+    uint64_t len = *reinterpret_cast<uint64_t *>(recvbuf_ + sizeof(S2CHeader));
+    boost::asio::async_read(*socket_,
+        boost::asio::buffer(recvbuf_ + sizeof(S2CHeader) + sizeof(uint64_t), len * sizeof(userid_t)),
+        boost::bind(&SslManager::HandleFindByUsernameReplyContent, this, boost::asio::placeholders::error));
+}
+void SslManager::HandleFindByUsernameReplyContent(const boost::system::error_code &error) {
+    qDebug() << __PRETTY_FUNCTION__;
+    HANDLE_ERROR;
+    //S2CHeader *s2cHeader = reinterpret_cast<S2CHeader *>(recvbuf_);
+    uint64_t len = *reinterpret_cast<uint64_t *>(recvbuf_ + sizeof(S2CHeader));
+    userid_t *userid = reinterpret_cast<userid_t *>(recvbuf_ + sizeof(S2CHeader) + sizeof(uint64_t));
+    std::vector<userid_t> res;
+    qDebug() << len << "results";
+    while (len--) {
+        //qDebug() << *userid;
+        qDebug("%x ", *userid);
+        res.push_back(*userid);
+        ++userid;
+    }
+    emit FindByUsernameReply(res);
     ListenToServer();
 }

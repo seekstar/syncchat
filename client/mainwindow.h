@@ -32,10 +32,15 @@ public:
     void NewFriend(userid_t userid, std::string username);
     void DeleteFriend(userid_t userid);
     void UpdateUsername(userid_t userid, std::string username);
+    void HandleFindByUsernameReply(std::vector<userid_t> res);
+
     void HandlePrivateMsgTooLong(userid_t userid, msgcontent_t content);
     void HandlePrivateMsgResponse(userid_t userid, msgcontent_t content, msgid_t msgid, msgtime_t msgtime);
     void HandlePrivateMsg(userid_t frd, userid_t sender, msgcontent_t content, msgid_t msgid, msgtime_t time);
+
     void NewGroup(grpid_t grpid, std::string grpname);
+    void HandleGrpMsgResp(grpmsgid_t grpmsgid, msgtime_t msgtime, grpid_t grpid, msgcontent_t content);
+    void HandleGrpMsg(grpmsgid_t grpmsgid, msgtime_t msgtime, userid_t sender, grpid_t grpid, msgcontent_t content);
 
     userid_t myid;
     std::string myUsername, myPhone;
@@ -51,8 +56,10 @@ signals:
     void SendToGroup(grpid_t group, msgcontent_t content);
     void CreateGroup();
     void JoinGroup();
+    void sigMoments();
+    void sigFindByUsername();
 
-private Q_SLOTS:
+private slots:
     void HandleItemClicked(QListWidgetItem *item);
     void Send();
     void HandleDeleteFriend();
@@ -62,6 +69,9 @@ private:
     msgcontent_t GetContentByInput(std::string in);
     void SetUserChatEditable(userid_t userid);
     void ClearUserChatEdit(userid_t userid);
+    void SetGrpChatEditable(grpid_t grpid);
+    void ClearGrpChatEdit(grpid_t grpid);
+    std::string GenContentDisp(userid_t sender, msgtime_t time, msgcontent_t content);
 
     Ui::MainWindow *ui;
 

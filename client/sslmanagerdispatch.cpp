@@ -42,6 +42,11 @@ void SslManager::HandleS2CHeader(const boost::system::error_code& error) {
                 boost::asio::buffer(recvbuf_, sizeof(grpid_t)),
                 boost::bind(&SslManager::HandleJoinGroupReply, this, boost::asio::placeholders::error));
             break;
+        case S2C::GRPMSG:
+            boost::asio::async_read(*socket_,
+                boost::asio::buffer(recvbuf_, sizeof(S2CMsgGrpHeader)),
+                boost::bind(&SslManager::HandleGrpMsgHeader, this, boost::asio::placeholders::error));
+            break;
         default:
             qWarning() << "Unexpected type in " << __PRETTY_FUNCTION__ << ": " << (S2CBaseType)s2cHeader->type;
             break;
@@ -70,6 +75,11 @@ void SslManager::HandleS2CHeader(const boost::system::error_code& error) {
                 boost::asio::buffer(recvbuf_ + sizeof(S2CHeader), sizeof(UserPublicInfoHeader)),
                 boost::bind(&SslManager::HandleUserPublicInfoHeader, this, boost::asio::placeholders::error));
             break;
+        case C2S::FIND_BY_USERNAME:
+            boost::asio::async_read(*socket_,
+                boost::asio::buffer(recvbuf_ + sizeof(S2CHeader), sizeof(uint64_t)),
+                boost::bind(&SslManager::HandleFindByUsernameReplyHeader, this, boost::asio::placeholders::error));
+            break;
         case C2S::ADD_FRIEND_REQ:
             HandleAddFriendResponse();
             break;
@@ -86,6 +96,11 @@ void SslManager::HandleS2CHeader(const boost::system::error_code& error) {
             boost::asio::async_read(*socket_,
                 boost::asio::buffer(recvbuf_ + sizeof(S2CHeader), sizeof(uint64_t)),
                 boost::bind(&SslManager::HandleGrpInfoHeader, this, boost::asio::placeholders::error));
+            break;
+        case C2S::GRPMSG:
+            boost::asio::async_read(*socket_,
+                boost::asio::buffer(recvbuf_ + sizeof(S2CHeader), sizeof(S2CGrpMsgReply)),
+                boost::bind(&SslManager::HandleGrpMsgReply, this, boost::asio::placeholders::error));
             break;
         default:
             qWarning() << "Unexpected transaction id: " << s2cHeader->tsid;

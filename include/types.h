@@ -21,6 +21,7 @@ enum class C2S : C2SBaseType {
     LOGOUT,
     USER_PUBLIC_INFO_REQ,   //username
     USER_PRIVATE_INFO_REQ,  //username, phone
+    FIND_BY_USERNAME,
     ADD_FRIEND_REQ,
     ADD_FRIEND_REPLY,
     DELETE_FRIEND,
@@ -35,6 +36,7 @@ enum class C2S : C2SBaseType {
     GRP_INFO,
     GRPMSG,
     GRPMSG_REQ,
+    MOMENT,
     P2PCONN
 };
 typedef uint32_t S2CBaseType;
@@ -61,12 +63,13 @@ enum class S2C : S2CBaseType {
     SIGNUP_RESP,
     USER_PRIVATE_INFO,
     USER_PUBLIC_INFO,
+    FIND_BY_USERNAME_REPLY,
     //ONLINE_FRIENDS,
     MSG_RESP,
     CREATE_GROUP_RESP,
-    GRPMSG_RESP,
-    //ONLINE_GROUP_MEMBER,
     GRP_INFO,
+    //ONLINE_GROUP_MEMBER,
+    GRPMSG_RESP,
     P2PCONN_RESP,  //The address of the peer
 
     //push
@@ -100,6 +103,7 @@ typedef uint64_t grpid_t;
 typedef uint64_t msgid_t;
 //group message id
 typedef uint64_t grpmsgid_t;
+typedef uint64_t momentid_t;
 
 typedef std::chrono::days::rep daystamp_t;          //4
 typedef std::chrono::milliseconds::rep msgtime_t;   //8
@@ -198,6 +202,13 @@ struct S2CMsgGrpHeader : S2CGrpMsgReply {
     //overlap with C2SGrpMsgHeader
     grpid_t to;         //8
     uint64_t len;       //8
+};
+
+struct C2SMomentHeader {
+    uint64_t len;
+};
+struct S2CMomentReply {
+    
 };
 
 #endif	//__TYPES_H__

@@ -146,6 +146,7 @@ syncchat</string>
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="actionFindByUsername"/>
    <addaction name="actionAddFriend"/>
    <addaction name="actionJoinGroup"/>
    <addaction name="actionCreateGroup"/>
@@ -185,6 +186,11 @@ syncchat</string>
   <action name="actionCreateGroup">
    <property name="text">
     <string>建群</string>
+   </property>
+  </action>
+  <action name="actionFindByUsername">
+   <property name="text">
+    <string>找人</string>
    </property>
   </action>
  </widget>

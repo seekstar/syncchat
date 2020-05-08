@@ -1,6 +1,7 @@
 #include "sessionbase.h"
 
 void session::HandleGrpMsg(const boost::system::error_code& error) {
+    dbgcout << __PRETTY_FUNCTION__;
     HANDLE_ERROR;
     auto c2sGrpMsgHeader = reinterpret_cast<struct C2SGrpMsgHeader*>
         (buf_ + sizeof(C2SHeader) + sizeof(S2CGrpMsgReply) + sizeof(userid_t));
@@ -17,6 +18,7 @@ void session::HandleGrpMsg(const boost::system::error_code& error) {
             boost::asio::placeholders::error));
 }
 void session::HandleGrpMsgContent(const boost::system::error_code& error) {
+    dbgcout << __PRETTY_FUNCTION__;
     HANDLE_ERROR;
     struct C2SHeader *c2sHeader = reinterpret_cast<struct C2SHeader *>(buf_);
     auto s2cGrpMsgReply = reinterpret_cast<struct S2CGrpMsgReply *>(c2sHeader + 1);
@@ -50,6 +52,8 @@ void session::HandleGrpMsgContent(const boost::system::error_code& error) {
         reset();
         return;
     }
+    dbgcout << __PRETTY_FUNCTION__ << ": generated message id is " << s2cGrpMsgReply->grpmsgid << '\n';
+
     //Response to the sender
     struct S2CHeader *s2cHeader = reinterpret_cast<struct S2CHeader *>(buf_);
     s2cHeader->type = S2C::GRPMSG_RESP;
@@ -59,7 +63,9 @@ void session::HandleGrpMsgContent(const boost::system::error_code& error) {
     s2cHeader->tsid = 0;    //push
     s2cHeader->type = S2C::GRPMSG;
     s2cMsgGrpHeader->from = userid;
-    if (odbc_exec(std::cerr, ("SELECT userid FROM grpmember WHERE grpid = " + s2cMsgGrpHeader->to + ';'))) {
+    if (odbc_exec(std::cerr, (
+        "SELECT userid FROM grpmember WHERE grpid = " + std::to_string(s2cMsgGrpHeader->to) + ';'
+    ).c_str())) {
         reset();
         return;
     }
@@ -68,6 +74,8 @@ void session::HandleGrpMsgContent(const boost::system::error_code& error) {
     SQLBindCol(hstmt, 1, SQL_C_UBIGINT, &touser, sizeof(touser), &length);
     while (SQL_NO_DATA != SQLFetch(hstmt)) {
         //TODO: Handle offline case
+        if (touser == userid)
+            continue;
         auto it = user_session.find(touser);
         if (it != user_session.end()) {
             it->second->SendLater(s2cHeader, sizeof(S2CHeader) + sizeof(S2CMsgGrpHeader) + s2cMsgGrpHeader->len);

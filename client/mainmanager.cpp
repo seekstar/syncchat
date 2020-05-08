@@ -27,6 +27,9 @@ MainManager::MainManager(const char *ip, const char *port, QObject *parent)
     connect(&sslManager, &SslManager::phoneTooLong, [this] {
         QMessageBox::information(&dialogSignup, "提示", "手机号过长");
     });
+    connect(&sslManager, &SslManager::noSuchUser, [this] {
+        QMessageBox::information(&winLogin, "提示", "用户不存在");
+    });
     connect(&sslManager, &SslManager::wrongPassword, [this] {
         QMessageBox::information(&winLogin, "提示", "密码错误");
     });
@@ -53,6 +56,10 @@ MainManager::MainManager(const char *ip, const char *port, QObject *parent)
     connect(this, &MainManager::AllFriendsReq, &sslManager, &SslManager::AllFriendsReq);
     //connect(this, &MainManager::AllGrpsReq, &SslManager, &SslManager::AllFriendsReq);
     connect(&sslManager, &SslManager::Friends, this, &MainManager::HandleFriends);
+    //find by username
+    connect(&mainWindow, &MainWindow::sigFindByUsername, &dialogFindByUsername, &DialogFindByUsername::show);
+    connect(&dialogFindByUsername, &DialogFindByUsername::FindByUsername, &sslManager, &SslManager::FindByUsername);
+    connect(&sslManager, &SslManager::FindByUsernameReply, &mainWindow, &MainWindow::HandleFindByUsernameReply);
     //dialogAddFriend
     connect(&mainWindow, &MainWindow::AddFriend, &dialogAddFriend, &DialogAddFriend::show);
     connect(&dialogAddFriend, &DialogAddFriend::AddFriend, &sslManager, &SslManager::AddFriend);
@@ -77,6 +84,14 @@ MainManager::MainManager(const char *ip, const char *port, QObject *parent)
     connect(&sslManager, &SslManager::NewGroup, this, &MainManager::HandleNewGroup);
     connect(&mainWindow, &MainWindow::JoinGroup, &dialogJoinGroup, &DialogJoinGroup::show);
     connect(&dialogJoinGroup, &DialogJoinGroup::JoinGroup, &sslManager, &SslManager::JoinGroup);    //reply is NewGroup
+    //group message
+    connect(&mainWindow, &MainWindow::SendToGroup, &sslManager, &SslManager::SendToGroup);
+    connect(&sslManager, &SslManager::GrpMsgResp, this, &MainManager::HandleGrpMsgResp);
+    connect(&sslManager, &SslManager::GrpMsg, this, &MainManager::HandleReceivedGrpMsg);
+    //moments
+    connect(&mainWindow, &MainWindow::sigMoments, &dialogMoments, &DialogMoments::show);
+    connect(&dialogMoments, &DialogMoments::sigEditMoment, &dialogEditMoment, &DialogEditMoment::show);
+    connect(&dialogEditMoment, &DialogEditMoment::SendMoment, &sslManager, &SslManager::SendMoment);
 
     sslManager.start();
     winLogin.show();
@@ -225,4 +240,28 @@ bool MainManager::WritePrivateMsgToDB(msgid_t msgid, msgtime_t msgtime, userid_t
 void MainManager::HandleNewGroup(grpid_t grpid, std::string grpname) {
     exec_sql("INSERT INTO grp(grpid, grpname) VALUES(" + std::to_string(grpid) + ",\"" + escape(grpname) + "\");", true);
     mainWindow.NewGroup(grpid, grpname);
+}
+
+void MainManager::HandleGrpMsgResp(grpmsgid_t grpmsgid, msgtime_t msgtime, grpid_t grpid, msgcontent_t content) {
+    mainWindow.HandleGrpMsgResp(grpmsgid, msgtime, grpid, content);
+    WriteGrpMsgToDB(grpmsgid, msgtime, mainWindow.myid, grpid, content);
+}
+
+void MainManager::HandleReceivedGrpMsg(grpmsgid_t grpmsgid, msgtime_t msgtime, userid_t sender,
+                                       grpid_t grpid, msgcontent_t content)
+{
+    mainWindow.HandleGrpMsg(grpmsgid, msgtime, sender, grpid, content);
+    WriteGrpMsgToDB(grpmsgid, msgtime, sender, grpid, content);
+}
+
+bool MainManager::WriteGrpMsgToDB(msgid_t grpmsgid, msgtime_t msgtime, userid_t sender, userid_t grpid, msgcontent_t content) {
+    SQLLEN length = content.size();
+    SQLRETURN retcode = SQLBindParameter(hstmt, 1, SQL_PARAM_INPUT, SQL_C_BINARY, SQL_BINARY, MAX_CONTENT_LEN,
+                     0, content.data(), content.size(), &length);
+    if (!SQL_SUCCEEDED(retcode)) {
+        std::cerr << "Error in" << __PRETTY_FUNCTION__ << ": SQLBindParameter failed\n";
+        return true;
+    }
+    return exec_sql("INSERT INTO grpmsg(grpmsgid, grpmsgtime, sender, togrp, content) VALUES(" + std::to_string(grpmsgid) + ',' +
+             std::to_string(msgtime) + ',' + std::to_string(sender) + ',' + std::to_string(grpid) + ",?);", true);
 }

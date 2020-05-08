@@ -32,6 +32,13 @@ bool myodbcLogin(const char *connStr) {
              "grpid BIGINT UNSIGNED PRIMARY KEY,"
              "grpname CHAR(100)"
              ");", false);
+    exec_sql("CREATE TABLE grpmsg ("
+             "grpmsgid BIGINT UNSIGNED PRIMARY KEY,"
+             "grpmsgtime BIGINT,"
+             "sender BIGINT UNSIGNED,"
+             "togrp BIGINT UNSIGNED,"
+             "content BLOB(2000)"
+             ");", false);
     return false;
 }
 

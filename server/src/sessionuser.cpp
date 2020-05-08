@@ -1,4 +1,5 @@
 #include "sessionbase.h"
+#include "escape.h"
 
 void session::HandleUserPrivateInfoReq() {
     dbgcout << __PRETTY_FUNCTION__ << '\n';
@@ -68,5 +69,43 @@ void session::HandleUserPublicInfoReq(const boost::system::error_code& error) {
     assert(SQL_NULL_DATA != length);
     publicInfo->nameLen = length;
     SendLater(buf_, sizeof(S2CHeader) + sizeof(UserPublicInfoHeader) + length);
+    listen_request();
+}
+
+void session::HandleFindByUsernameHeader(const boost::system::error_code& error) {
+    HANDLE_ERROR;
+    uint64_t len = *reinterpret_cast<uint64_t *>(buf_ + sizeof(C2SHeader));
+    boost::asio::async_read(socket_,
+        boost::asio::buffer(buf_ + sizeof(C2SHeader) + sizeof(uint64_t), len),
+        boost::bind(&session::HandleFindByUsernameContent, this, boost::asio::placeholders::error));
+}
+
+void session::HandleFindByUsernameContent(const boost::system::error_code& error) {
+    HANDLE_ERROR;
+    S2CHeader *s2cHeader = reinterpret_cast<S2CHeader *>(buf_);
+    uint64_t len = *reinterpret_cast<uint64_t *>(buf_ + sizeof(C2SHeader));
+    char *username = reinterpret_cast<char *>(buf_ + sizeof(C2SHeader) + sizeof(uint64_t));
+
+    if (odbc_exec(std::cerr, ("SELECT userid FROM user WHERE username = \"" + escape(username, len) + "\";").c_str())) {
+        std::cerr << "Error in " << __PRETTY_FUNCTION__ << ": odbc_exec error\n";
+        reset();
+        return;
+    }
+    s2cHeader->type = S2C::FIND_BY_USERNAME_REPLY;
+    uint64_t *num = reinterpret_cast<uint64_t *>(s2cHeader + 1);
+    userid_t *userid = reinterpret_cast<userid_t *>(num + 1);
+    SQLLEN length;
+    *num = 0;
+    while (1) {
+        //TODO: Handle buffer not long enougn
+        SQLBindCol(hstmt, 1, SQL_C_UBIGINT, userid, sizeof(userid_t), &length);
+        if (SQL_NO_DATA == SQLFetch(hstmt)) {
+            SendLater(buf_, reinterpret_cast<uint8_t*>(userid) - buf_);
+            break;
+        }
+        dbgcout << *userid << ' ';
+        ++*num;
+        ++userid;
+    }
     listen_request();
 }
