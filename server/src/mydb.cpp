@@ -107,7 +107,7 @@ void InitDB(std::ostream& err) {
     "    FOREIGN KEY sender_foreign(sender) REFERENCES user(userid),        "
     "    FOREIGN KEY reply_foreign(reply) REFERENCES comment(id)"
     ");");
-    odbc_exec(err, "CREATE INDEX comment_sender_index ON comment(sender);");
+    //odbc_exec(err, "CREATE INDEX comment_sender_index ON comment(sender);");
     // odbc_exec(err, "CREATE PROCEDURE insert_comment(OUT id BIGINT UNSIGNED, IN time BIGINT, IN sender BIGINT UNSIGNED, IN reply BIGINT UNSIGNED, IN content BLOB(2000))\n"
     //     "BEGIN\n"
     //         "INSERT INTO comment(time, sender, reply, content) VALUES(time, sender, reply, content);\n"
