@@ -47,7 +47,6 @@ void InitDB(std::ostream& err) {
             "INSERT INTO msg(msgtime, sender, touser, content) VALUES(msgtime, sender, touser, content);\n"
             "SET msgid = LAST_INSERT_ID();\n"
         "END");
-    odbc_exec(err, "CREATE VIEW msgcnt AS SELECT sender, count(*) cnt FROM msg GROUP BY sender;");
     odbc_exec(err, "CREATE TABLE grp ("
         "grpid BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,"
         "createtime INT NOT NULL,"
@@ -92,6 +91,7 @@ void InitDB(std::ostream& err) {
     "    FOREIGN KEY moment_sender_foreign(sender) REFERENCES user(userid),"
     "    FOREIGN KEY moment_ori_foreign(ori) REFERENCES moment(id)"
     ");");
+    odbc_exec(err, "CREATE INDEX index_moment_sender ON moment(sender);");
     // odbc_exec(err, "CREATE PROCEDURE insert_moment(OUT id BIGINT UNSIGNED, IN time BIGINT, IN sender BIGINT UNSIGNED, IN ori BIGINT UNSIGNED, IN content BLOB(2000))\n"
     //     "BEGIN\n"
     //         "INSERT INTO moment(time, sender, ori, content) VALUES(time, sender, ori, content);\n"

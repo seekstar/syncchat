@@ -18,7 +18,7 @@ void session::handle_request(const boost::system::error_code& error) {
         reset();
         return;
     }
-    dbgcout << "Received a request\n";
+    dbgcout << "Received a request from " << userid << '\n';
     struct C2SHeader *header = reinterpret_cast<struct C2SHeader *>(buf_);
     switch (header->type) {
     case C2S::SIGNUP:

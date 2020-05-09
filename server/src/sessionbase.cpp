@@ -42,9 +42,9 @@ void session::start() {
 }
 
 void session::reset() {
+    dbgcout << "Disconnecting from user " << userid << '\n';
     user_session.erase(userid);
     delete this;
-    dbgcout << "Disconnected\n";
 }
 void session::handle_sslio_error(const boost::system::error_code& error) {
     SslIO::handle_sslio_error(error);

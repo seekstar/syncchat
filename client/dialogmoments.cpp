@@ -44,7 +44,7 @@ void DialogMoments::HandleMoment(CppMoment moment) {
     widget->Set(moment);
     connect(widget, &WidgetMoment::Comment, this, &DialogMoments::Comment);
     connect(widget, &WidgetMoment::CommentsReq, this, &DialogMoments::CommentsReq);
-    item->setSizeHint(widget->minimumSizeHint());
+    item->setSizeHint(widget->sizeHint());
     ui->moments->addItem(item);
     ui->moments->setItemWidget(item, widget);
     mmtWidget_[moment.id] = widget;

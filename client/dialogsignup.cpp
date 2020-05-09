@@ -35,7 +35,7 @@ void DialogSignup::slotSignup() {
 }
 
 void DialogSignup::signupRes(userid_t userid) {
-    QMessageBox::information(this, "注册成功", QString("您的id为") + std::to_string(userid).c_str() + "\n请牢记，若遗失不可找回");
+    QMessageBox::information(this, "注册成功", QString("您的id为") + std::to_string(userid).c_str() + "\n请牢记您的密码，若遗失不可找回");
 }
 
 DialogSignup::~DialogSignup()

@@ -73,7 +73,7 @@ void MainWindow::UpdateUsername(userid_t userid, std::string username) {
         qDebug() << "Warning in" << __PRETTY_FUNCTION__ << ": No such a user " << userid;
         return;
     }
-    it->second.item->setText(QString(username.c_str()));
+    it->second.item->setText(QString((username + "(账号:" + std::to_string(userid) + ')').c_str()));
 }
 
 void MainWindow::HandlePrivateMsgTooLong(userid_t userid, CppContent content) {
@@ -211,7 +211,7 @@ void MainWindow::HandleDeleteFriend() {
     }
 }
 void MainWindow::DeleteFriend(userid_t userid) {
-    delete ui->chats->takeItem(ui->chats->row(userChatInfo[curUser_].item));
+    delete ui->chats->takeItem(ui->chats->row(userChatInfo[userid].item));
     userChatInfo.erase(userid);
     if (curIsUser_ && curUser_ == userid) {
         ui->stackedWidget_chat->setCurrentIndex(logoIndex);

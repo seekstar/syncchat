@@ -10,6 +10,7 @@ WidgetMoment::WidgetMoment(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    ui->content->setWordWrap(true);
     connect(ui->btn_comment, &QPushButton::clicked, &dialogComments, &DialogComments::HandleShow);
     connect(&dialogComments, &DialogComments::Comment, this, &WidgetMoment::slotComment);
     connect(&dialogComments, &DialogComments::CommentsReq, this, &WidgetMoment::slotCommentsReq);

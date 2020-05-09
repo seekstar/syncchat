@@ -41,7 +41,7 @@ void DialogComments::HandleComment(const CppComment& moment) {
     auto widget = new WidgetComment;
     widget->Set(moment);
     connect(widget, &WidgetComment::Reply, this, &DialogComments::HandleReply);
-    item->setSizeHint(widget->minimumSizeHint());
+    item->setSizeHint(widget->sizeHint());
     ui->comments->addItem(item);
     ui->comments->setItemWidget(item, widget);
 }

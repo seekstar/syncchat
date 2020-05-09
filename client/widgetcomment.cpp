@@ -8,6 +8,7 @@ WidgetComment::WidgetComment(QWidget *parent) :
     ui(new Ui::WidgetComment)
 {
     ui->setupUi(this);
+    ui->content->setWordWrap(true);
     connect(ui->btn_reply, &QPushButton::clicked, [this] {
         emit Reply(id);
     });
