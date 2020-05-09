@@ -3,6 +3,9 @@
 
 #include <iostream>
 
+#include "boost/iostreams/stream.hpp"
+#include "boost/iostreams/device/null.hpp"
+
 //TODO: Support std::endl
 class _emptycout : std::ostream {
 public:
@@ -10,13 +13,13 @@ public:
     _emptycout& operator << (T val) {(void)val; return *this;}
 };
 
-extern _emptycout emptycout;
+extern boost::iostreams::stream<boost::iostreams::null_sink> nullOstream;
 
 #ifndef dbgcout
 #ifdef DEBUG
 #define dbgcout std::cerr
 #else
-#define dbgcout emptycout
+#define dbgcout nullOstream
 #endif //DEBUG
 #endif //dbgcout
 

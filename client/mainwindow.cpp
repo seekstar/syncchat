@@ -147,19 +147,26 @@ void MainWindow::HandleItemClicked(QListWidgetItem *item) {
     //backup
     if (curIsUser_) {
         if (curUser_) {
+            qDebug () << "currenct user is " << curUser_;
             auto it = userChatInfo.find(curUser_);
-            assert(it != userChatInfo.end());
-            it->second.textBrowser = ui->textBrowser->toPlainText();
-            it->second.textEdit = ui->textEdit->toPlainText();
-            it->second.readonly = ui->textEdit->isReadOnly();
+            if (it == userChatInfo.end()) {
+                qWarning() << "Error in" << __PRETTY_FUNCTION__ << ": curUser_ has no corresponding item!";
+            } else {
+                it->second.textBrowser = ui->textBrowser->toPlainText();
+                it->second.textEdit = ui->textEdit->toPlainText();
+                it->second.readonly = ui->textEdit->isReadOnly();
+            }
         }
     } else {
         if (curGrp_) {
             auto it = grpChatInfo.find(curGrp_);
-            assert(it != grpChatInfo.end());
-            it->second.textBrowser = ui->textBrowser->toPlainText();
-            it->second.textBrowser = ui->textEdit->toPlainText();
-            it->second.readonly = ui->textEdit->isReadOnly();
+            if (it == grpChatInfo.end()) {
+                qWarning() << "Error in" << __PRETTY_FUNCTION__ << ": curGrp_ has no corresponding item!";
+            } else {
+                it->second.textBrowser = ui->textBrowser->toPlainText();
+                it->second.textBrowser = ui->textEdit->toPlainText();
+                it->second.readonly = ui->textEdit->isReadOnly();
+            }
         }
     }
     curIsUser_ = itemIsUser_[item];
@@ -215,6 +222,7 @@ void MainWindow::DeleteFriend(userid_t userid) {
     userChatInfo.erase(userid);
     if (curIsUser_ && curUser_ == userid) {
         ui->stackedWidget_chat->setCurrentIndex(logoIndex);
+        curUser_ = 0;
     }
     QMessageBox::information(this, "提示", QString(("成功与用户" + std::to_string(userid) + "解除好友关系").c_str()));
 }

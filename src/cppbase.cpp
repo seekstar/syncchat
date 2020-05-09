@@ -1,6 +1,8 @@
 #include "cppbase.h"
 
-_emptycout emptycout;
+//_emptycout emptycout;
+boost::iostreams::stream<boost::iostreams::null_sink> nullOstream( ( boost::iostreams::null_sink() ) );
+//boost::iostreams::stream<boost::iostreams::null_sink> nullOstream(boost::iostreams::null_sink());
 
 void DbgPrintHex(void *data, size_t len) {
 #if DEBUG

@@ -23,7 +23,7 @@ public:
 		  context_(boost::asio::ssl::context::sslv23)
 	{
 		std::ostringstream err;
-		if (odbc_connect(err, "wechatserver", NULL, NULL)) {
+		if (odbc_connect(err, "syncchatserver", NULL, NULL)) {
 			throw std::runtime_error("odbc_login: " + err.str());
 		}
 		// if (odbc_driver_connect(err, "Driver=SQLite3;Database=syncchatserver.db")) {

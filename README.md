@@ -1,54 +1,83 @@
-# tianchat
+# syncchat
 
 #### Description
+
 An IM software
 
 #### Software Architecture
 
+The software is based on C/S architecture. The communicate between the server and the client is based on SSL. The passwords of users are hashed with salt.
+
 #### Installation
 
-1. mkdir build
-2. cd build
-3. cmake ..
+##### server
 
-There may be error like this:
+1. Install dependencies
 
-```txt
-CMake Error: The source directory "/home/searchstar/git/syncchat/src" does not appear to contain CMakeLists.txt.
-Specify --help for usage, or press the help button on the CMake GUI.
-```
+    - boost
+    - openssl
+    - unixodbc
 
-Just ignore it.(I don't know the reason of this error though.)
+2. cd to the root of the project
+3. Compile server
 
-4. make
-Then the server is in directory "build".
+    ```shell
+    mkdir build
+    cd build
+    cmake ..
+    make
+    ```
 
-#### Instructions
+    Then the executable of server is in the directory "build".
 
-1. Configure odbc data source
-This is an artical for the configuration of odbc data source for mariadb.
+4. Configure odbc data source
+The name of data source should be "syncchatserver". Here is an article about the configuration of odbc data source for mariadb on linux:
 <https://blog.csdn.net/qq_41961459/article/details/105142898>
-2. Run server
-You need server.pem and dh2048.pem as certificate.
+5. Prepare certificates for server
+You need to put server.pem and dh2048.pem in the same directory as the executable of server.
 You can find the demo certificate in the directory "demo".
-3. Run client
-You need ca.pem to verify the certificate that the server provides.
-You can find the demo ca.pem in the directory "demo".
-4. xxxx
+Here is an article about how to generate ssl certificates on linux:
+<https://blog.csdn.net/qq_41961459/article/details/105720464>
+6. Run server
+
+    ```shell
+    ./server 5188
+    ```
+
+##### client
+
+1. Install dependencies
+
+    - boost
+    - openssl
+    - unixodbc
+    - sqlite3
+    - Qt5
+
+2. cd to client directory
+
+3. Compile client
+
+    ```shell
+    qmake client.pro
+    make in ../build-client-unknown-Debug
+    ```
+
+    Then the executable of client is in the current client directory.
+
+4. Prepare certificate for client
+    You need to put ca.pem in the same directory as the executable of client.
+    You can find the demo ca.pem in the directory.
+
+5. Run client
+
+    ```shell
+    ./client
+    ```
 
 #### Contribution
 
-1.  Fork the repository
-2.  Create Feat_xxx branch
-3.  Commit your code
-4.  Create Pull Request
-
-
-#### Gitee Feature
-
-1.  You can use Readme\_XXX.md to support different languages, such as Readme\_en.md, Readme\_zh.md
-2.  Gitee blog [blog.gitee.com](https://blog.gitee.com)
-3.  Explore open source project [https://gitee.com/explore](https://gitee.com/explore)
-4.  The most valuable open source project [GVP](https://gitee.com/gvp)
-5.  The manual of Gitee [https://gitee.com/help](https://gitee.com/help)
-6.  The most popular members  [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+1. Fork the repository
+2. Create Feat_xxx branch
+3. Commit your code
+4. Create Pull Request

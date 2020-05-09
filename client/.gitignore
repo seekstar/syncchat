@@ -1,3 +1,8 @@
 client.pro.user
 Makefile
 .qmake.stash
+moc_*.cpp
+ui_*.h
+*.o
+client
+
