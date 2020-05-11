@@ -74,6 +74,22 @@ Here is an article about how to generate ssl certificates on linux:
     ```shell
     ./client
     ```
+#### Features
+
+- Signup
+- Login
+- Add friend
+- Delete friend
+- Search for user ID by user name
+- Private message
+- Create group
+- Join group
+- Group message
+- Moments and comments
+
+#### User Interface
+
+
 
 #### Contribution
 

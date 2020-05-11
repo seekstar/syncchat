@@ -47,6 +47,11 @@ void SslManager::HandleS2CHeader(const boost::system::error_code& error) {
                 boost::asio::buffer(recvbuf_, sizeof(grpid_t)),
                 boost::bind(&SslManager::HandleJoinGroupReply, this, boost::asio::placeholders::error));
             break;
+        case S2C::GROUPS:
+            boost::asio::async_read(*socket_,
+                boost::asio::buffer(recvbuf_, sizeof(uint64_t)),
+                boost::bind(&SslManager::HandleGrpsHeader, this, boost::asio::placeholders::error));
+            break;
         case S2C::GRPMSG:
             boost::asio::async_read(*socket_,
                 boost::asio::buffer(recvbuf_, sizeof(S2CMsgGrpHeader)),

@@ -58,8 +58,9 @@ MainManager::MainManager(const char *ip, const char *port, QObject *parent)
     connect(this, &MainManager::UserPrivateInfoReq, &sslManager, &SslManager::UserPrivateInfoReq);
     connect(&sslManager, &SslManager::UserPrivateInfoReply, &mainWindow, &MainWindow::UpdatePrivateInfo);
     connect(this, &MainManager::AllFriendsReq, &sslManager, &SslManager::AllFriendsReq);
-    //connect(this, &MainManager::AllGrpsReq, &SslManager, &SslManager::AllFriendsReq);
     connect(&sslManager, &SslManager::Friends, this, &MainManager::HandleFriends);
+    connect(this, &MainManager::AllGrpsReq, &sslManager, &SslManager::AllGrps);
+    connect(&sslManager, &SslManager::Grps, this, &MainManager::HandleGrps);
     //find by username
     connect(&mainWindow, &MainWindow::sigFindByUsername, &dialogFindByUsername, &DialogFindByUsername::show);
     connect(&dialogFindByUsername, &DialogFindByUsername::FindByUsername, &sslManager, &SslManager::FindByUsername);
@@ -85,11 +86,13 @@ MainManager::MainManager(const char *ip, const char *port, QObject *parent)
     //group
     connect(&mainWindow, &MainWindow::CreateGroup, &dialogCreateGroup, &DialogCreateGroup::show);
     connect(&dialogCreateGroup, &DialogCreateGroup::CreateGroup, &sslManager, &SslManager::CreateGroup);
+    connect(&sslManager, &SslManager::NewGrpWithName, this, &MainManager::HandleNewGrpWithName);
     connect(&sslManager, &SslManager::NewGroup, this, &MainManager::HandleNewGroup);
     connect(&mainWindow, &MainWindow::JoinGroup, &dialogJoinGroup, &DialogJoinGroup::show);
     connect(&dialogJoinGroup, &DialogJoinGroup::JoinGroup, &sslManager, &SslManager::JoinGroup);    //reply is NewGroup
+    connect(this, &MainManager::GrpInfoReq, &sslManager, &SslManager::GrpInfoReq);
+    connect(&sslManager, &SslManager::GrpInfoReply, this, &MainManager::HandleGrpInfoReply);
     connect(&mainWindow, &MainWindow::ChangeGrpOwner, &sslManager, &SslManager::ChangeGrpOwner);
-    connect(&mainWindow, &MainWindow::sigAllGrps, &sslManager, &SslManager::AllGrps);
     connect(&mainWindow, &MainWindow::sigAllGrpMember, &sslManager, &SslManager::AllGrpMember);
     //group message
     connect(&mainWindow, &MainWindow::SendToGroup, &sslManager, &SslManager::SendToGroup);
@@ -166,6 +169,7 @@ void MainManager::HandleLoginDone(userid_t userid) {
     }
     emit UserPrivateInfoReq();
     emit AllFriendsReq();
+    emit AllGrpsReq();
 }
 
 void MainManager::HandleAddFriendReq(userid_t userid, std::string username) {
@@ -251,9 +255,34 @@ bool MainManager::WritePrivateMsgToDB(msgid_t msgid, msgtime_t msgtime, userid_t
              std::to_string(msgtime) + ',' + std::to_string(sender) + ',' + std::to_string(touser) + ",?);", true);
 }
 
-void MainManager::HandleNewGroup(grpid_t grpid, std::string grpname) {
-    exec_sql("INSERT INTO grp(grpid, grpname) VALUES(" + std::to_string(grpid) + ",\"" + escape(grpname) + "\");", true);
+void MainManager::HandleNewGrpWithName(grpid_t grpid, std::string grpname) {
+    exec_sql("INSERT INTO grp(grpid, grpname) VALUES(" + std::to_string(grpid) +
+             ",\"" + escape(grpname) + "\");", true);
     mainWindow.NewGroup(grpid, grpname);
+}
+
+void MainManager::HandleNewGroup(grpid_t grpid) {
+    emit GrpInfoReq(grpid);
+    HandleNewGrpWithName(grpid, std::to_string(grpid));
+}
+
+void MainManager::HandleGrpInfoReply(grpid_t grpid, std::string grpname) {
+    exec_sql("UPDATE grp SET grpname = \"" + escape(grpname) + "\" WHERE grpid = " + std::to_string(grpid) + ';', true);
+    mainWindow.UpdateGrpname(grpid, grpname);
+}
+
+void MainManager::HandleGrps(std::vector<grpid_t> grps) {
+    //This function is called after login has been done and all groups have been read from db
+    for (grpid_t grp : grps) {
+        auto it = mainWindow.grpChatInfo.find(grp);
+        if (mainWindow.grpChatInfo.end() != it) {
+            //already know
+            continue;
+        } else {
+            //This client know the group for the first time
+            HandleNewGroup(grp);
+        }
+    }
 }
 
 void MainManager::HandleGrpMsgResp(grpmsgid_t grpmsgid, msgtime_t msgtime, grpid_t grpid, CppContent content) {

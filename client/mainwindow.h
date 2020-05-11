@@ -39,6 +39,7 @@ public:
     void HandlePrivateMsg(userid_t frd, userid_t sender, CppContent content, msgid_t msgid, msgtime_t time);
 
     void NewGroup(grpid_t grpid, std::string grpname);
+    void UpdateGrpname(grpid_t grpid, std::string grpname);
     void HandleGrpMsgResp(grpmsgid_t grpmsgid, msgtime_t msgtime, grpid_t grpid, CppContent content);
     void HandleGrpMsg(grpmsgid_t grpmsgid, msgtime_t msgtime, userid_t sender, grpid_t grpid, CppContent content);
 
@@ -46,7 +47,6 @@ public:
     std::string myUsername, myPhone;
     std::unordered_map<userid_t, ChatInfo> userChatInfo;
     std::unordered_map<grpid_t, ChatInfo> grpChatInfo;
-    std::unordered_map<grpid_t, std::string> grpnames;
 
 signals:
     void sigFindByUsername();

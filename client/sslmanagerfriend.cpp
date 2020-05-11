@@ -2,7 +2,7 @@
 
 void SslManager::AllFriendsReq() {
     qDebug() << __PRETTY_FUNCTION__;
-    SendLater(C2SHeaderBuf_noreply(C2S::ALL_FRIENDS));  //reply as push
+    SendLater(C2SHeaderBuf_noresp(C2S::ALL_FRIENDS));  //reply as push
 }
 void SslManager::HandleFriendsHeader(const boost::system::error_code& error) {
     HANDLE_ERROR;
@@ -88,7 +88,7 @@ void SslManager::HandleAddFriendReply(const boost::system::error_code& error) {
 }
 
 void SslManager::DeleteFriend(userid_t userid) {
-    auto buf = C2SHeaderBuf_noreply(C2S::DELETE_FRIEND);    //Just delete, don't reply
+    auto buf = C2SHeaderBuf_noresp(C2S::DELETE_FRIEND);    //Just delete, don't reply
     PushBuf(buf, &userid, sizeof(userid));
     SendLater(buf);
 }

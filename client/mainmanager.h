@@ -31,7 +31,8 @@ signals:
     void UserPrivateInfoReq();
     void UserPublicInfoReq(userid_t);
     void AllFriendsReq();
-    //void AllGrpsReq();
+    void AllGrpsReq();
+    void GrpInfoReq(grpid_t grpid);
 
 public slots:
 
@@ -47,7 +48,10 @@ private slots:
     void HandlePrivateMsgResponse(userid_t userid, CppContent content, msgid_t msgid, msgtime_t msgtime);
     void HandleReceivedPrivateMsg(userid_t userid, CppContent content, msgid_t msgid, msgtime_t msgtime);
 
-    void HandleNewGroup(grpid_t grpid, std::string grpname);
+    void HandleNewGrpWithName(grpid_t grpid, std::string grpname);
+    void HandleNewGroup(grpid_t grpid);
+    void HandleGrpInfoReply(grpid_t grpid, std::string grpname);
+    void HandleGrps(std::vector<grpid_t> grps);
     //void HandleJoinGroup(grpid_t grpid);
     void HandleGrpMsgResp(grpmsgid_t grpmsgid, msgtime_t msgtime, grpid_t grpid, CppContent content);
     void HandleReceivedGrpMsg(grpmsgid_t grpmsgid, msgtime_t msgtime, userid_t sender, grpid_t grpid, CppContent content);

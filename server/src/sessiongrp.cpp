@@ -120,26 +120,37 @@ void session::HandleChangeGrpOwner(const boost::system::error_code& error) {
 
 void session::HandleAllGrps() {
     if (odbc_exec(std::cerr, (
-        "SELECT grpid, grpname, grpowner FROM grpmember NATURAL JOIN grp WHERE userid = " + 
-        std::to_string(userid) + ';'
+        "SELECT grpid FROM grpmember WHERE userid = " + std::to_string(userid) + ';'
     ).c_str())) {
         reset();
         return;
     }
-    std::ostringstream disp;
-    SQLLEN length, nameLen;
-    grpid_t grpid;
-    char grpname[MAX_GROUPNAME_LEN];
-    userid_t owner;
-    SQLBindCol(hstmt, 1, SQL_C_UBIGINT, &grpid, sizeof(grpid), &length);
-    SQLBindCol(hstmt, 2, SQL_C_CHAR, grpname, sizeof(grpname), &nameLen);
-    SQLBindCol(hstmt, 3, SQL_C_UBIGINT, &owner, sizeof(owner), &length);
-    disp << "群号\t群名\t群主\n";
-    while (SQL_NO_DATA != SQLFetch(hstmt)) {
-        disp << grpid << '\t' << std::string(grpname, nameLen) << '\t' << owner << '\n';
+    S2CHeader *s2cHeader = reinterpret_cast<S2CHeader *>(buf_);
+    uint64_t *num = reinterpret_cast<uint64_t *>(s2cHeader + 1);
+    grpid_t *grpidStart = reinterpret_cast<grpid_t *>(num + 1);
+    s2cHeader->tsid = 0;    //push
+    s2cHeader->type = S2C::GROUPS;
+
+    *num = 0;
+    grpid_t *grpid = grpidStart;
+    while (1) {
+        if (reinterpret_cast<uint8_t *>(grpid + 1) > buf_ + BUFSIZE) {
+            SendLater(buf_, reinterpret_cast<uint8_t *>(grpid) - buf_);
+            grpid = grpidStart;
+            *num = 0;
+        }
+        SQLLEN length;
+        SQLBindCol(hstmt, 1, SQL_C_UBIGINT, grpid, sizeof(grpid_t), &length);
+        if (SQL_NO_DATA != SQLFetch(hstmt)) {
+            ++*num;
+            ++grpid;
+        } else {
+            if (*num) {
+                SendLater(buf_, reinterpret_cast<uint8_t *>(grpid) - buf_);
+            }
+            break;
+        }
     }
-    //dbgcout << disp.str(); 
-    SendInfo(disp.str());
     listen_request();
 }
 

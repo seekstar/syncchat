@@ -90,6 +90,7 @@ enum class S2C : S2CBaseType {
     FRIENDS,    //There may be many friends, so send them in batches.
     MSG,
     JOIN_GROUP_OK,
+    GROUPS,     //There may be many groups, so send them in batches.
     GRPMSG,
     MOMENTS,
     COMMENTS,

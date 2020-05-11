@@ -9,7 +9,7 @@ void SslManager::SendMoment(CppContent content) {
 }
 
 void SslManager::MomentsReq() {
-    SendLater(C2SHeaderBuf_noreply(C2S::MOMENTS_REQ));
+    SendLater(C2SHeaderBuf_noresp(C2S::MOMENTS_REQ));
 }
 
 void SslManager::HandleMomentsMainHeader(const boost::system::error_code& error) {
@@ -48,7 +48,7 @@ void SslManager::HandleMomentArray3(uint64_t num, const boost::system::error_cod
 }
 
 void SslManager::SendComment(momentid_t to, commentid_t reply, CppContent content) {
-    auto buf = C2SHeaderBuf_noreply(C2S::COMMENT);
+    auto buf = C2SHeaderBuf_noresp(C2S::COMMENT);
     C2SCommentHeader c2sCommentHeader{to, reply, content.size()};
     PushBuf(buf, &c2sCommentHeader, sizeof(c2sCommentHeader));
     PushBuf(buf, content.data(), content.size());
@@ -56,7 +56,7 @@ void SslManager::SendComment(momentid_t to, commentid_t reply, CppContent conten
 }
 
 void SslManager::CommentsReq(momentid_t to) {
-    auto buf = C2SHeaderBuf_noreply(C2S::COMMENTS_REQ);
+    auto buf = C2SHeaderBuf_noresp(C2S::COMMENTS_REQ);
     PushBuf(buf, &to, sizeof(to));
     SendLater(buf);
 }

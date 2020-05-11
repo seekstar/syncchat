@@ -89,9 +89,9 @@ void SslManager::handle_send(const boost::system::error_code& error) {
 }
 std::vector<uint8_t> SslManager::C2SHeaderBuf(C2S type) {
     transactionType_[last_tsid+1] = type;
-    return C2SHeaderBuf_noreply(type);
+    return C2SHeaderBuf_noresp(type);
 }
-std::vector<uint8_t> SslManager::C2SHeaderBuf_noreply(C2S type) {
+std::vector<uint8_t> SslManager::C2SHeaderBuf_noresp(C2S type) {
     std::vector<uint8_t> buf(sizeof(C2SHeader));
     struct C2SHeader *c2sHeader = reinterpret_cast<struct C2SHeader *>(buf.data());
     c2sHeader->tsid = ++last_tsid;

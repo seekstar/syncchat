@@ -158,5 +158,5 @@ void SslManager::HandleFindByUsernameReplyContent(const boost::system::error_cod
 }
 
 void SslManager::PersonalInfo() {
-    SendLater(C2SHeaderBuf_noreply(C2S::STATISTICS));
+    SendLater(C2SHeaderBuf_noresp(C2S::STATISTICS));
 }

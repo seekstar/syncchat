@@ -68,9 +68,10 @@ void MainWindow::NewFriend(userid_t userid, std::string username) {
 }
 
 void MainWindow::UpdateUsername(userid_t userid, std::string username) {
+    usernames[userid] = username;
     auto it = userChatInfo.find(userid);
     if (userChatInfo.end() == it) {
-        qDebug() << "Warning in" << __PRETTY_FUNCTION__ << ": No such a user " << userid;
+        qDebug() << "Warning in" << __PRETTY_FUNCTION__ << ": No such a user" << userid;
         return;
     }
     it->second.item->setText(QString((username + "(账号:" + std::to_string(userid) + ')').c_str()));
@@ -117,6 +118,15 @@ void MainWindow::NewGroup(grpid_t grpid, std::__cxx11::string grpname) {
     itemIsUser_[item] = false;
     grpChatInfo[grpid] = {item, "", "", false};
     itemGrp_[item] = grpid;
+}
+void MainWindow::UpdateGrpname(grpid_t grpid, std::__cxx11::string grpname) {
+    grpnames[grpid] = grpname;
+    auto it = grpChatInfo.find(grpid);
+    if (grpChatInfo.end() == it) {
+        qDebug() << "Warning in" << __PRETTY_FUNCTION__ << ": No such a group" << grpid;
+        return;
+    }
+    it->second.item->setText(QString((grpname + "(群号:" + std::to_string(grpid) + ')').c_str()));
 }
 
 void MainWindow::HandleGrpMsgResp(grpmsgid_t grpmsgid, msgtime_t msgtime, grpid_t grpid, CppContent content) {

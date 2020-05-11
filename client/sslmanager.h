@@ -48,7 +48,11 @@ signals:
     void PrivateMsgTooLong(userid_t userid, CppContent content);
     void PrivateMsgResponse(userid_t userid, CppContent content, msgid_t msgid, msgtime_t msgtime);
     void PrivateMsg(userid_t userid, CppContent content, msgid_t msgid, msgtime_t msgtime);
-    void NewGroup(grpid_t grpid, std::string grpname);
+
+    void NewGroup(grpid_t grpid);
+    void NewGrpWithName(grpid_t grpid, std::string grpname);
+    void GrpInfoReply(grpid_t grpid, std::string grpname);
+    void Grps(std::vector<grpid_t> grps);
     void GrpMsgResp(grpmsgid_t grpmsgid, msgtime_t msgtime, grpid_t grpid, CppContent content);
     void GrpMsg(grpmsgid_t grpmsgid, msgtime_t msgtime, userid_t sender, grpid_t grpid, CppContent content);
 
@@ -74,8 +78,8 @@ public slots:
     void CreateGroup(std::string groupname);
     void JoinGroup(grpid_t grpid);
     void GrpInfoReq(grpid_t grpid);
-    void ChangeGrpOwner(grpid_t, userid_t);
     void AllGrps();
+    void ChangeGrpOwner(grpid_t, userid_t);
     void AllGrpMember(grpid_t grpid);
     void SendToGroup(grpid_t grpid, CppContent content);
 
@@ -95,7 +99,7 @@ private:
     void StartSend();
     void handle_send(const boost::system::error_code& error);
     std::vector<uint8_t> C2SHeaderBuf(C2S type);
-    std::vector<uint8_t> C2SHeaderBuf_noreply(C2S type);
+    std::vector<uint8_t> C2SHeaderBuf_noresp(C2S type);
     void SendLater(const std::vector<uint8_t>& buf);
 
     void ListenToServer();
@@ -134,6 +138,10 @@ private:
     void HandleJoinGroupReply(const boost::system::error_code& error);
     void HandleGrpInfoHeader(const boost::system::error_code& error);
     void HandleGrpInfoContent(const boost::system::error_code& error);
+    void HandleGrpsHeader(const boost::system::error_code& error);
+    void HandleGrpsContent(uint64_t num, const boost::system::error_code &error);
+    void HandleGrpsContentNoError(uint64_t num);
+    void HandleGrpsContentMore(uint64_t num, uint64_t readNum, const boost::system::error_code &error);
 
     void HandleGrpMsgReply(const boost::system::error_code& error);
     void HandleGrpMsgHeader(const boost::system::error_code& error);
