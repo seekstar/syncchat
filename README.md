@@ -70,7 +70,7 @@ The software is developed on linux. But it should be easy to adapt to windows be
 
     ```shell
     qmake client.pro
-    make in ../build-client-unknown-Debug
+    make
     ```
 
     Then the executable of client is in the current client directory.
