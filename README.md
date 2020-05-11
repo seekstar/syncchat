@@ -2,8 +2,11 @@
 
 #### Description
 
-An IM software.
+An IM software. Just for fun.
+
 gitee: <https://gitee.com/searchstar/syncchat>
+
+github: <https://github.com/searchstar2017/syncchat>
 
 #### Software Architecture
 
@@ -34,13 +37,17 @@ The software is developed on linux. But it should be easy to adapt to windows be
     Then the executable of server is in the directory "build".
 
 4. Configure odbc data source
-The name of data source should be "syncchatserver". Here is an article about the configuration of odbc data source for mariadb on linux:
-<https://blog.csdn.net/qq_41961459/article/details/105142898>
+
+    The name of data source should be "syncchatserver". Here is an article about the configuration of odbc data source for mariadb on linux:
+    <https://blog.csdn.net/qq_41961459/article/details/105142898>
+
 5. Prepare certificates for server
-You need to put server.pem and dh2048.pem in the same directory as the executable of server.
-You can find the demo certificate in the directory "demo".
-Here is an article about how to generate ssl certificates on linux:
-<https://blog.csdn.net/qq_41961459/article/details/105720464>
+
+    You need to put server.pem and dh2048.pem in the same directory as the executable of server.
+    You can find the demo certificate in the directory "demo".
+    Here is an article about how to generate ssl certificates on linux:
+    <https://blog.csdn.net/qq_41961459/article/details/105720464>
+
 6. Run server
 
     ```shell
@@ -69,6 +76,7 @@ Here is an article about how to generate ssl certificates on linux:
     Then the executable of client is in the current client directory.
 
 4. Prepare certificate for client
+
     You need to put ca.pem in the same directory as the executable of client.
     You can find the demo ca.pem in the directory.
 
