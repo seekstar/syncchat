@@ -2,11 +2,14 @@
 
 #### Description
 
-An IM software
+An IM software.
+gitee: <https://gitee.com/searchstar/syncchat>
 
 #### Software Architecture
 
 The software is based on C/S architecture. The communicate between the server and the client is based on SSL. The passwords of users are hashed with salt.
+
+The software is developed on linux. But it should be easy to adapt to windows because all components used are cross-platform.
 
 #### Installation
 
@@ -74,7 +77,7 @@ Here is an article about how to generate ssl certificates on linux:
     ```shell
     ./client
     ```
-    
+
 #### Features
 
 - Signup
@@ -90,7 +93,20 @@ Here is an article about how to generate ssl certificates on linux:
 
 #### User Interface
 
+![Main window](https://wx2.sbimg.cn/2020/05/11/mainWindow.png)
 
+#### TODO
+
+- Delete friend offline.
+- Delete group.
+- Synchronize private messages and group messages between the server and the client.
+- Support adding friends offline.
+- Use local db as cache in "moments".
+- Replace QDialog with QMainWindow.
+- Support avatar.
+- Support inserting pictures in message content and moment content.
+- Support transferring files by p2p.
+- Support windows.
 
 #### Contribution
 
