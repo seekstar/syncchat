@@ -135,17 +135,18 @@ void MainManager::HandleLoginDone(userid_t userid) {
     if (exec_sql("SELECT userid, username FROM friends;", true)) {
         return;
     }
-    SQLLEN idLen, nameLen;
+    SQLLEN length, usernameLen;
     char username[MAX_USERNAME_LEN];
-    SQLBindCol(hstmt, 1, SQL_C_UBIGINT, &userid, sizeof(userid), &idLen);
-    SQLBindCol(hstmt, 2, SQL_C_CHAR, username, sizeof(username), &nameLen);
+    SQLBindCol(hstmt, 1, SQL_C_UBIGINT, &userid, sizeof(userid), &length);
+    SQLBindCol(hstmt, 2, SQL_C_CHAR, username, sizeof(username), &usernameLen);
     while (SQL_NO_DATA != SQLFetch(hstmt)) {
-        assert(SQL_NULL_DATA != idLen);
+        assert(SQL_NULL_DATA != length);
         std::string displayName;
-        if (SQL_NULL_DATA == nameLen) {
+        if (SQL_NULL_DATA == usernameLen) {
+            emit UserPublicInfoReq(userid);
             displayName = std::to_string(userid);
         } else {
-            displayName = std::string(username, nameLen);
+            displayName = std::string(username, usernameLen);
         }
         mainWindow.NewFriend(userid, displayName);
     }
@@ -155,18 +156,38 @@ void MainManager::HandleLoginDone(userid_t userid) {
     }
     grpid_t grpid;
     char grpname[MAX_GROUPNAME_LEN];
-    SQLBindCol(hstmt, 1, SQL_C_UBIGINT, &grpid, sizeof(grpid), &idLen);
-    SQLBindCol(hstmt, 2, SQL_C_CHAR, grpname, sizeof(grpname), &nameLen);
+    SQLBindCol(hstmt, 1, SQL_C_UBIGINT, &grpid, sizeof(grpid), &length);
+    SQLBindCol(hstmt, 2, SQL_C_CHAR, grpname, sizeof(grpname), &usernameLen);
     while (SQL_NO_DATA != SQLFetch(hstmt)) {
-        assert(SQL_NULL_DATA != idLen);
+        assert(SQL_NULL_DATA != length);
         std::string dispName;
-        if (SQL_NULL_DATA == nameLen) {
+        if (SQL_NULL_DATA == usernameLen) {
+            emit GrpInfoReq(grpid);
             dispName = std::to_string(grpid);
         } else {
-            dispName = std::string(grpname, nameLen);
+            dispName = std::string(grpname, usernameLen);
         }
         mainWindow.NewGroup(grpid, grpname);
     }
+
+    if (exec_sql("SELECT msgid, msgtime, sender, touser, content FROM msg;", true)) {
+        return;
+    }
+    SQLLEN contentLen;
+    msgid_t msgid;
+    msgtime_t msgtime;
+    userid_t sender, touser;
+    uint8_t content[MAX_CONTENT_LEN];
+    SQLBindCol(hstmt, 1, SQL_C_UBIGINT, &msgid, sizeof(msgid), &length);
+    SQLBindCol(hstmt, 2, SQL_C_SBIGINT, &msgtime, sizeof(msgtime), &length);
+    SQLBindCol(hstmt, 3, SQL_C_UBIGINT, &sender, sizeof(sender), &length);
+    SQLBindCol(hstmt, 4, SQL_C_UBIGINT, &touser, sizeof(touser), &length);
+    SQLBindCol(hstmt, 5, SQL_C_BINARY, content, sizeof(content), &contentLen);
+    while (SQL_NO_DATA != SQLFetch(hstmt)) {
+        assert(SQL_NULL_DATA != contentLen);
+        mainWindow.HandleRawPrivateMsg(msgid, msgtime, sender, touser, CppContent(content, content + contentLen));
+    }
+
     emit UserPrivateInfoReq();
     emit AllFriendsReq();
     emit AllGrpsReq();
@@ -263,7 +284,8 @@ void MainManager::HandleNewGrpWithName(grpid_t grpid, std::string grpname) {
 
 void MainManager::HandleNewGroup(grpid_t grpid) {
     emit GrpInfoReq(grpid);
-    HandleNewGrpWithName(grpid, std::to_string(grpid));
+    exec_sql("INSERT INTO grp(grpid) VALUES(" + std::to_string(grpid) + ");", true);
+    mainWindow.NewGroup(grpid, std::to_string(grpid));
 }
 
 void MainManager::HandleGrpInfoReply(grpid_t grpid, std::string grpname) {

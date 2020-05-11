@@ -37,6 +37,7 @@ public:
     void HandlePrivateMsgTooLong(userid_t userid, CppContent content);
     void HandlePrivateMsgResponse(userid_t userid, CppContent content, msgid_t msgid, msgtime_t msgtime);
     void HandlePrivateMsg(userid_t frd, userid_t sender, CppContent content, msgid_t msgid, msgtime_t time);
+    void HandleRawPrivateMsg(msgid_t msgid, msgtime_t time, userid_t sender, userid_t touser, CppContent content);
 
     void NewGroup(grpid_t grpid, std::string grpname);
     void UpdateGrpname(grpid_t grpid, std::string grpname);

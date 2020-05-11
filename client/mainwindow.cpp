@@ -109,6 +109,13 @@ void MainWindow::HandlePrivateMsg(userid_t frd, userid_t sender, CppContent cont
         it->second.textBrowser.append(disp.c_str());
     }
 }
+void MainWindow::HandleRawPrivateMsg(msgid_t msgid, msgtime_t time, userid_t sender, userid_t touser, CppContent content) {
+    if (sender == myid) {
+        HandlePrivateMsg(touser, sender, content, msgid, time);
+    } else {
+        HandlePrivateMsg(sender, sender, content, msgid, time);
+    }
+}
 
 void MainWindow::NewGroup(grpid_t grpid, std::__cxx11::string grpname) {
     qDebug() << __PRETTY_FUNCTION__;
