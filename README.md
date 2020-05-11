@@ -74,6 +74,7 @@ Here is an article about how to generate ssl certificates on linux:
     ```shell
     ./client
     ```
+    
 #### Features
 
 - Signup

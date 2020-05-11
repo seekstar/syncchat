@@ -37,7 +37,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionCreateGroup, &QAction::triggered, this, &MainWindow::CreateGroup);
     connect(ui->actionJoinGroup, &QAction::triggered, this, &MainWindow::JoinGroup);
     connect(ui->actionManageGroup, &QAction::triggered, this, &MainWindow::slotManageGroup);
-    connect(ui->actionAllGrps, &QAction::triggered, this, &MainWindow::sigAllGrps);
     connect(ui->actionAllGrpMember, &QAction::triggered, this, &MainWindow::slotAllGrpMember);
     connect(ui->actionMoments, &QAction::triggered, this, &MainWindow::sigMoments);
     connect(ui->actionPersonalInfo, &QAction::triggered, this, &MainWindow::sigPersonalInfo);

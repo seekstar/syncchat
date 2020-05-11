@@ -6,13 +6,6 @@
 #include "boost/iostreams/stream.hpp"
 #include "boost/iostreams/device/null.hpp"
 
-//TODO: Support std::endl
-class _emptycout : std::ostream {
-public:
-	template <typename T>
-    _emptycout& operator << (T val) {(void)val; return *this;}
-};
-
 extern boost::iostreams::stream<boost::iostreams::null_sink> nullOstream;
 
 #ifndef dbgcout

@@ -151,7 +151,6 @@ syncchat</string>
    <addaction name="actionJoinGroup"/>
    <addaction name="actionCreateGroup"/>
    <addaction name="actionManageGroup"/>
-   <addaction name="actionAllGrps"/>
    <addaction name="actionAllGrpMember"/>
    <addaction name="actionMoments"/>
    <addaction name="actionPersonalInfo"/>
@@ -199,11 +198,6 @@ syncchat</string>
   <action name="actionAllGrpMember">
    <property name="text">
     <string>群成员</string>
-   </property>
-  </action>
-  <action name="actionAllGrps">
-   <property name="text">
-    <string>群列表</string>
    </property>
   </action>
   <action name="actionManageGroup">

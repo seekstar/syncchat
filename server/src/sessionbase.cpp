@@ -4,7 +4,8 @@
 std::unordered_map<userid_t, session*> user_session;
 
 session::session(io_service_t& io_service, context_t& context)
-      : SslIO(io_service, context)
+      : SslIO(io_service, context),
+        userid(0)
 {
     //to = NULL;
 }

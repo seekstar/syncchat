@@ -58,7 +58,6 @@ signals:
     void CreateGroup();
     void JoinGroup();
     void ChangeGrpOwner(grpid_t, userid_t);
-    void sigAllGrps();
     void sigAllGrpMember(grpid_t);
     void sigMoments();
     void sigPersonalInfo();
