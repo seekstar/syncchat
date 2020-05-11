@@ -101,7 +101,7 @@ The software is developed on linux. But it should be easy to adapt to windows be
 
 #### User Interface
 
-![Main window](https://wx2.sbimg.cn/2020/05/11/mainWindow.png)
+![Main window](img/mainWindow.png)
 
 #### TODO
 
