@@ -8,15 +8,22 @@
 #include "odbcbase.h"
 
 bool myodbcLogin(const char *connStr) {
+    qDebug() << connStr;
     std::ostringstream err;
     if (odbc_driver_connect(err, connStr)) {
-        QMessageBox::critical(NULL, "Can not open syncchatclient.db", err.str().c_str());
+        QMessageBox::critical(NULL, "Open database error!", (connStr + '\n' + err.str()).c_str());
         return true;
     }
     /*exec_sql("CREATE DATABASE syncchat;", false);
     if (exec_sql("USE syncchat;", true)) {
         return true;
     }*/
+    exec_sql("CREATE TABLE user ("
+             "userid BIGINT UNSIGNED PRIMARY KEY,"
+             //"signuptime INT NOT NULL,"
+             "username CHAR(100),"
+             "phone CHAR(28)"
+             ");", false);
     exec_sql("CREATE TABLE friends ("
              "userid BIGINT UNSIGNED PRIMARY KEY,"
              "username CHAR(100)"
@@ -67,4 +74,14 @@ bool exec_sql(const std::string& stmt, bool critical) {
         return true;
     }
     return false;
+}
+
+bool close_cursor() {
+    qDebug() << __PRETTY_FUNCTION__;
+    std::ostringstream err;
+    bool fail = odbc_close_cursor(err);
+    if (fail) {
+        QMessageBox::critical(NULL, "Close cursor error!", QString(err.str().c_str()));
+    }
+    return fail;
 }

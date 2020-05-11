@@ -123,20 +123,45 @@ MainManager::~MainManager() {
 
 void MainManager::HandleLoginDone(userid_t userid) {
     qDebug() << __PRETTY_FUNCTION__;
+    myodbcLogin(("Driver=SQLite3;Database=syncchatclient" + std::to_string(userid) + ".db").c_str());
+
     if (mainWindow.myid) {
         qDebug() << "Duplicate login done: " << userid;
         return;
     }
     mainWindow.myid = userid;
+    if (exec_sql("SELECT username FROM user WHERE userid = " + std::to_string(userid) + ';', true)) {
+        return;
+    }
+    char username[MAX_USERNAME_LEN];
+    SQLLEN usernameLen;
+    SQLBindCol(hstmt, 1, SQL_C_CHAR, username, sizeof(username), &usernameLen);
+    if (SQL_NO_DATA != SQLFetch(hstmt)) {
+        if (SQL_NULL_DATA == usernameLen) {
+            qDebug() << "Error in" << __PRETTY_FUNCTION__ << ": Null username with userid" << userid;
+        } else {
+            mainWindow.myUsername = std::string(username, usernameLen);
+            usernames[userid] = mainWindow.myUsername;
+        }
+    } else {
+        if (exec_sql("INSERT INTO user(userid) VALUES(" + std::to_string(userid) + ");", true)) {
+            return;
+        }
+    }
+    if (close_cursor()) {
+        return;
+    }
     winLogin.close();
-    mainWindow.setWindowTitle(QString(std::to_string(mainWindow.myid).c_str()));
+    mainWindow.setWindowTitle(QString((
+        mainWindow.myUsername + "(账号:" + std::to_string(mainWindow.myid) + ')'
+    ).c_str()));
     mainWindow.show();
-    myodbcLogin(("Driver=SQLite3;Database=syncchatclient" + std::to_string(mainWindow.myid) + ".db").c_str());
+    emit UserPrivateInfoReq();
+
     if (exec_sql("SELECT userid, username FROM friends;", true)) {
         return;
     }
-    SQLLEN length, usernameLen;
-    char username[MAX_USERNAME_LEN];
+    SQLLEN length;
     SQLBindCol(hstmt, 1, SQL_C_UBIGINT, &userid, sizeof(userid), &length);
     SQLBindCol(hstmt, 2, SQL_C_CHAR, username, sizeof(username), &usernameLen);
     while (SQL_NO_DATA != SQLFetch(hstmt)) {
@@ -150,6 +175,7 @@ void MainManager::HandleLoginDone(userid_t userid) {
         }
         mainWindow.NewFriend(userid, displayName);
     }
+    emit AllFriendsReq();
 
     if (exec_sql("SELECT grpid, grpname FROM grp;", true)) {
         return;
@@ -169,6 +195,7 @@ void MainManager::HandleLoginDone(userid_t userid) {
         }
         mainWindow.NewGroup(grpid, grpname);
     }
+    emit AllGrpsReq();
 
     if (exec_sql("SELECT msgid, msgtime, sender, touser, content FROM msg;", true)) {
         return;
@@ -184,13 +211,24 @@ void MainManager::HandleLoginDone(userid_t userid) {
     SQLBindCol(hstmt, 4, SQL_C_UBIGINT, &touser, sizeof(touser), &length);
     SQLBindCol(hstmt, 5, SQL_C_BINARY, content, sizeof(content), &contentLen);
     while (SQL_NO_DATA != SQLFetch(hstmt)) {
+        qDebug() << "A local message";
         assert(SQL_NULL_DATA != contentLen);
         mainWindow.HandleRawPrivateMsg(msgid, msgtime, sender, touser, CppContent(content, content + contentLen));
     }
 
-    emit UserPrivateInfoReq();
-    emit AllFriendsReq();
-    emit AllGrpsReq();
+    if (exec_sql("SELECT grpmsgid, grpmsgtime, sender, togrp, content FROM grpmsg;", true)) {
+        return;
+    }
+    grpmsgid_t grpmsgid;
+    SQLBindCol(hstmt, 1, SQL_C_UBIGINT, &grpmsgid, sizeof(grpmsgid), &length);
+    SQLBindCol(hstmt, 2, SQL_C_SBIGINT, &msgtime, sizeof(msgtime), &length);
+    SQLBindCol(hstmt, 3, SQL_C_UBIGINT, &sender, sizeof(sender), &length);
+    SQLBindCol(hstmt, 4, SQL_C_UBIGINT, &grpid, sizeof(grpid), &length);
+    SQLBindCol(hstmt, 5, SQL_C_BINARY, content, sizeof(content), &contentLen);
+    while (SQL_NO_DATA != SQLFetch(hstmt)) {
+        assert(SQL_NULL_DATA != contentLen);
+        mainWindow.HandleGrpMsg(grpmsgid, msgtime, sender, grpid, CppContent(content, content + contentLen));
+    }
 }
 
 void MainManager::HandleAddFriendReq(userid_t userid, std::string username) {

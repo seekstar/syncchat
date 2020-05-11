@@ -2,10 +2,7 @@
 
 void session::handle_msg(const boost::system::error_code& error) {
     static_assert(sizeof(C2SHeader) + sizeof(MsgS2CHeader) + MAX_CONTENT_LEN <= BUFSIZE);
-    if (error) {
-        reset();
-        return;
-    }
+    HANDLE_ERROR;
     struct MsgC2SHeader *msgC2SHeader = reinterpret_cast<struct MsgC2SHeader*>
         (buf_ + sizeof(C2SHeader) + sizeof(MsgS2CReply));
     if (msgC2SHeader->len > MAX_CONTENT_LEN) {
@@ -31,17 +28,11 @@ void session::IgnoreMsgContent(size_t len) {
     }
 }
 void session::HandleIgnore(size_t len, const boost::system::error_code& error) {
-    if (error) {
-        reset();
-        return;
-    }
+    HANDLE_ERROR;
     IgnoreMsgContent(len);
 }
 void session::handle_msg_content(const boost::system::error_code& error) {
-    if (error) {
-        reset();
-        return;
-    }
+    HANDLE_ERROR;
     struct C2SHeader *c2sHeader = reinterpret_cast<struct C2SHeader *>(buf_);
     struct MsgS2CReply *msgS2CReply = reinterpret_cast<struct MsgS2CReply *>(c2sHeader + 1);
     struct MsgC2SHeader *msgC2SHeader = reinterpret_cast<struct MsgC2SHeader*>(msgS2CReply + 1);

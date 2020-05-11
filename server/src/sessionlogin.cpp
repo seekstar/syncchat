@@ -11,17 +11,11 @@ void session::listen_signup_or_login() {
 }
 
 void session::listen_signup_or_login(const boost::system::error_code& error) {
-    if (error) {
-        reset();
-        return;
-    }
+    HANDLE_ERROR;
     listen_signup_or_login();
 }
 void session::handle_signup_or_login(const boost::system::error_code& error) {
-    if (error) {
-        reset();
-        return;
-    }
+    HANDLE_ERROR;
     dbgcout << "handle_signup_or_login\n";
     struct C2SHeader *header = reinterpret_cast<struct C2SHeader *>(buf_);
     switch (header->type) {
@@ -48,11 +42,7 @@ void session::handle_signup_or_login(const boost::system::error_code& error) {
     }
 }
 void session::HandleSignupHeader(transactionid_t tsid, const boost::system::error_code& error) {
-    if (error) {
-        reset();
-        return;
-    }
-    
+    HANDLE_ERROR;
     struct SignupHeader *header = reinterpret_cast<struct SignupHeader *>(buf_);
     if (header->namelen > MAX_USERNAME_LEN) {
         SendType(tsid, S2C::USERNAME_TOO_LONG);
@@ -72,10 +62,7 @@ void session::HandleSignupHeader(transactionid_t tsid, const boost::system::erro
         boost::bind(&session::HandleSignup, this, tsid, boost::asio::placeholders::error));
 }
 void session::HandleSignup(transactionid_t tsid, const boost::system::error_code& error) {
-    if (error) {
-        reset();
-        return;
-    }
+    HANDLE_ERROR;
     struct SignupHeader *header = reinterpret_cast<struct SignupHeader *>(buf_);
     uint8_t *salt = buf_ + sizeof(SignupHeader);
     uint8_t *res = salt + SHA256_DIGEST_LENGTH;
@@ -144,10 +131,7 @@ void session::HandleSignup(transactionid_t tsid, const boost::system::error_code
     //     boost::bind(&session::listen_signup_or_login, this, boost::asio::placeholders::error));
 }
 void session::handle_login(transactionid_t tsid, const boost::system::error_code& error) {
-    if (error) {
-        reset();
-        return;
-    }
+    HANDLE_ERROR;
     struct LoginInfo *loginInfo = reinterpret_cast<struct LoginInfo *>(buf_);
     uint8_t *salt = buf_ + sizeof(LoginInfo);
     uint8_t *pw = salt + SHA256_DIGEST_LENGTH;

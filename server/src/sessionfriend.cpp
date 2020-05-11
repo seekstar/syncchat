@@ -5,6 +5,11 @@ void session::HandleAddFriendReq(const boost::system::error_code& error) {
     HANDLE_ERROR;
     C2SAddFriendReq *c2sAddFriendReq = reinterpret_cast<C2SAddFriendReq *>(buf_ + sizeof(C2SHeader));
     //Check whether they are already friends
+    if (userid == c2sAddFriendReq->to) {
+        SendType(S2C::ALREADY_FRIENDS);
+        listen_request();
+        return;
+    }
     if (odbc_exec(std::cerr, ("SELECT user2 FROM friends WHERE user1 = " + std::to_string(userid) +
         " and user2 = " + std::to_string(c2sAddFriendReq->to) + ';').c_str())
     ) {

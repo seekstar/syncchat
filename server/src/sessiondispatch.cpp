@@ -7,17 +7,11 @@ void session::listen_request() {
         boost::bind(&session::handle_request, this, boost::asio::placeholders::error));
 }
 void session::listen_request(const boost::system::error_code& error) {
-    if (error) {
-        reset();
-        return;
-    }
+    HANDLE_ERROR;
     listen_request();
 }
 void session::handle_request(const boost::system::error_code& error) {
-    if (error) {
-        reset();
-        return;
-    }
+    HANDLE_ERROR;
     dbgcout << "Received a request from " << userid << '\n';
     struct C2SHeader *header = reinterpret_cast<struct C2SHeader *>(buf_);
     switch (header->type) {

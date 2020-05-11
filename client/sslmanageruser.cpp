@@ -88,7 +88,7 @@ void SslManager::HandleUserPrivateInfoContent(const boost::system::error_code& e
     HANDLE_ERROR;
     auto userPrivateInfoHeader = reinterpret_cast<UserPrivateInfoHeader *>(recvbuf_);
     char *username = reinterpret_cast<char *>(recvbuf_ + sizeof(userPrivateInfoHeader));
-    char *phone = username + userPrivateInfoHeader->phoneLen;
+    char *phone = username + userPrivateInfoHeader->nameLen;
     emit UserPrivateInfoReply(std::string(username, userPrivateInfoHeader->nameLen),
                               std::string(phone, userPrivateInfoHeader->phoneLen));
     ListenToServer();

@@ -10,7 +10,7 @@
 
 #define HANDLE_ERROR    \
     if (error) {        \
-        dbgcout << __PRETTY_FUNCTION__ << '\n';\
+        dbgcout << "HANDLE ERROR in " << __PRETTY_FUNCTION__ << '\n';\
         reset();        \
         return;         \
     }

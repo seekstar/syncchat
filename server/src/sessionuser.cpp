@@ -31,9 +31,11 @@ void session::HandleUserPrivateInfoReq() {
     if (SQL_NULL_DATA == phoneLen) {
         phoneLen = 0;
     }
+    dbgcout << "username is " << std::string(username, nameLen) << ", phone is " << std::string(phone, phoneLen) << '\n';
     userPrivateInfoHeader->nameLen = nameLen;
     userPrivateInfoHeader->phoneLen = phoneLen;
     memcpy(username + nameLen, phone, phoneLen);
+    dbgcout << "username is " << std::string(username, nameLen) << ", phone is " << std::string(username + nameLen, phoneLen) << '\n';
     SendLater(buf_, sizeof(S2CHeader) + sizeof(UserPrivateInfoHeader) + nameLen + phoneLen);
     listen_request();
 }

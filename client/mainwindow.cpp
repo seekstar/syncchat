@@ -12,6 +12,7 @@
 #include "myglobal.h"
 #include "myodbc.h"
 #include "mycontent.h"
+#include "escape.h"
 
 constexpr int logoIndex = 0;
 constexpr int chatIndex = 1;
@@ -48,6 +49,8 @@ void MainWindow::UpdatePrivateInfo(std::string username, std::string phone) {
     myPhone = phone;
     usernames[myid] = username;
     setWindowTitle(QString((myUsername + "(账号:" + std::to_string(myid) + ')').c_str()));
+    exec_sql("UPDATE user SET username = \"" + escape(username) + "\", phone = \"" + escape(phone) + "\""
+             " WHERE userid = " + std::to_string(myid) + ';', true);
 }
 
 void MainWindow::HandleFindByUsernameReply(std::vector<userid_t> res) {
@@ -106,10 +109,11 @@ void MainWindow::HandlePrivateMsg(userid_t frd, userid_t sender, CppContent cont
             qDebug() << "Warning in" << __PRETTY_FUNCTION__ << ": user" << frd << "has no corresponding chat";
             return;
         }
-        it->second.textBrowser.append(disp.c_str());
+        it->second.textBrowser.append((disp + '\n').c_str());
     }
 }
 void MainWindow::HandleRawPrivateMsg(msgid_t msgid, msgtime_t time, userid_t sender, userid_t touser, CppContent content) {
+    qDebug() << __PRETTY_FUNCTION__;
     if (sender == myid) {
         HandlePrivateMsg(touser, sender, content, msgid, time);
     } else {
@@ -154,7 +158,7 @@ void MainWindow::HandleGrpMsg(grpmsgid_t grpmsgid, msgtime_t time, userid_t send
             qDebug() << "Warning in" << __PRETTY_FUNCTION__ << ": group" << grpid << "has no corresponding chat";
             return;
         }
-        it->second.textBrowser.append(disp.c_str());
+        it->second.textBrowser.append((disp + '\n').c_str());
     }
 }
 
@@ -181,7 +185,7 @@ void MainWindow::HandleItemClicked(QListWidgetItem *item) {
                 qWarning() << "Error in" << __PRETTY_FUNCTION__ << ": curGrp_ has no corresponding item!";
             } else {
                 it->second.textBrowser = ui->textBrowser->toPlainText();
-                it->second.textBrowser = ui->textEdit->toPlainText();
+                it->second.textEdit = ui->textEdit->toPlainText();
                 it->second.readonly = ui->textEdit->isReadOnly();
             }
         }
@@ -201,7 +205,7 @@ void MainWindow::HandleItemClicked(QListWidgetItem *item) {
     } else {
         curGrp_ = itemGrp_[item];
         auto it = grpChatInfo.find(curGrp_);
-        if (userChatInfo.end() == it) {
+        if (grpChatInfo.end() == it) {
             qDebug() << "Error in" << __PRETTY_FUNCTION__ << ": item" << item << "has no corresponding group";
             return;
         }
