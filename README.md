@@ -105,6 +105,7 @@ The software is developed on linux. But it should be easy to adapt to windows be
 
 #### TODO
 
+- Use network byte order in the communication between the server and the client.
 - Delete friend offline.
 - Delete group.
 - Synchronize private messages and group messages between the server and the client.
@@ -112,6 +113,7 @@ The software is developed on linux. But it should be easy to adapt to windows be
 - Use local db as cache in "moments".
 - Replace QDialog with QMainWindow.
 - Support avatar.
+- Support emoji.
 - Support inserting pictures in message content and moment content.
 - Support transferring files by p2p.
 - Support windows.
