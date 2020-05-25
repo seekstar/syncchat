@@ -10,7 +10,7 @@ github: <https://github.com/searchstar2017/syncchat>
 
 #### Software Architecture
 
-The software is based on C/S architecture. The communicate between the server and the client is based on SSL. The passwords of users are hashed with salt.
+The software is based on C/S architecture. The communication between the server and the client is based on SSL. The passwords of users are hashed with salt.
 
 The software is developed on linux. But it should be easy to adapt to windows because all components used are cross-platform.
 
