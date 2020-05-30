@@ -78,7 +78,7 @@ The software is developed on linux. But it should be easy to adapt to windows be
 4. Prepare certificate for client
 
     You need to put ca.pem in the same directory as the executable of client.
-    You can find the demo ca.pem in the directory.
+    You can find the demo ca.pem in the directory "demo".
 
 5. Run client
 
