@@ -34,6 +34,7 @@ target_link_libraries(server
         crypto
         boost_system
         odbc
+        pthread
 )
 #target_compile_features(server PRIVATE cxx_auto_type)
 set_target_properties(server PROPERTIES CXX_STANDARD 14)
