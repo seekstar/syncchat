@@ -4,10 +4,6 @@
 
 An IM software. Just for fun.
 
-gitee: <https://gitee.com/searchstar/syncchat>
-
-github: <https://github.com/searchstar2017/syncchat>
-
 #### Software Architecture
 
 The software is based on C/S architecture. The communication between the server and the client is based on SSL. The passwords of users are hashed with salt.
